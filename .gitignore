@@ -1,0 +1,17 @@
+# .NET
+bin/
+obj/
+*.swp
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.dotsettings
+.idea/
+
+# Packages
+*.nupkg
+*.snupkg
+
+.env
