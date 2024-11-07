@@ -1,0 +1,32 @@
+﻿@using LibraryManagementSystem.Models
+@model LoginViewModel
+
+@{
+    ViewData["Title"] = "Login";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+@if (ViewData["LoginFailed"] != null && (bool)ViewData["LoginFailed"])
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        Invalid login attempt. Please check your credentials and try again.
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<form method="post" asp-action="Login">
+    <div class="form-group">
+        <label for="Email">Email</label>
+        <input type="email" class="form-control" id="Email" name="Email" value="@Model.Email" required />
+    </div>
+    <div class="form-group">
+        <label for="Password">Password</label>
+        <input type="password" class="form-control" id="Password" name="Password" required />
+    </div>
+    <div class="form-group form-check">
+        <input type="checkbox" class="form-check-input" id="RememberMe" name="RememberMe" />
+        <label class="form-check-label" for="RememberMe">Remember me</label>
+    </div>
+    <button type="submit" class="btn btn-primary">Login</button>
+</form>

@@ -1,4 +1,5 @@
 using LibraryManagementSystem.Data;
+using LibraryManagementSystem.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,15 +11,21 @@ namespace LibraryManagementSystem
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
-            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-            builder.Services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(connectionString));
+            // Register your custom DbContext for the library database
+            builder.Services.AddDbContext<LibraryDbContext>(options =>
+                options.UseNpgsql(builder.Configuration.GetConnectionString("ConnectionString")));
+
+            // Register Identity with your custom User class and IdentityRole
+            builder.Services.AddIdentity<User, IdentityRole>(options => options.SignIn.RequireConfirmedEmail  =false) // Using your custom User model
+                .AddEntityFrameworkStores<LibraryDbContext>()
+                .AddDefaultTokenProviders();
+    
+
+
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-            builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
-                .AddEntityFrameworkStores<ApplicationDbContext>();
-            builder.Services.AddControllersWithViews();
+            // Add MVC controllers with views
+            builder.Services.AddControllersWithViews(); // This is for MVC, not Razor Pages
 
             var app = builder.Build();
 
@@ -30,22 +37,21 @@ namespace LibraryManagementSystem
             else
             {
                 app.UseExceptionHandler("/Home/Error");
-                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
 
-            app.UseHttpsRedirection();
             app.UseStaticFiles();
 
             app.UseRouting();
 
-            app.UseAuthentication();
+            app.UseAuthentication(); // Ensure Authentication is enabled
             app.UseAuthorization();
 
+
+            // Set up the routes for MVC controllers (without Razor Pages)
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");
-            app.MapRazorPages();
 
             app.Run();
         }

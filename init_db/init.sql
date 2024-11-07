@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS users (
-    user_id SERIAL PRIMARY KEY,
+    user_id varchar(250) PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS books (
 
 CREATE TABLE IF NOT EXISTS leases (
     lease_id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL REFERENCES users(user_id),
+    user_id varchar(250) NOT NULL REFERENCES users(user_id),
     book_id INT NOT NULL REFERENCES books(book_id),
     lease_start_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     lease_end_date TIMESTAMP
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS leases (
 
 CREATE TABLE IF NOT EXISTS reservations (
     reservation_id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL REFERENCES users(user_id),
+    user_id varchar(250) NOT NULL REFERENCES users(user_id),
     book_id INT NOT NULL REFERENCES books(book_id),
     reservation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     reservation_expiry TIMESTAMP

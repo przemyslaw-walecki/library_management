@@ -9,9 +9,11 @@ obj/
 *.sln.docstates
 *.dotsettings
 .idea/
+LibraryManagementSystem/.vs/
 
 # Packages
 *.nupkg
 *.snupkg
 
 .env
+LibraryManagementSystem/LibraryManagementSystem/appsettings.json
