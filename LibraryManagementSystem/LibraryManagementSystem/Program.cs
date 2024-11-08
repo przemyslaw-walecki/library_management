@@ -1,6 +1,4 @@
 using LibraryManagementSystem.Data;
-using LibraryManagementSystem.Models;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace LibraryManagementSystem
@@ -11,25 +9,25 @@ namespace LibraryManagementSystem
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Register your custom DbContext for the library database
+            builder.Services.AddHttpContextAccessor();
+
             builder.Services.AddDbContext<LibraryDbContext>(options =>
                 options.UseNpgsql(builder.Configuration.GetConnectionString("ConnectionString")));
 
-            // Register Identity with your custom User class and IdentityRole
-            builder.Services.AddIdentity<User, IdentityRole>(options => options.SignIn.RequireConfirmedEmail  =false) // Using your custom User model
-                .AddEntityFrameworkStores<LibraryDbContext>()
-                .AddDefaultTokenProviders();
-    
-
+            builder.Services.AddDistributedMemoryCache();
+            builder.Services.AddSession(options =>
+            {
+                options.IdleTimeout = TimeSpan.FromMinutes(30);
+                options.Cookie.HttpOnly = true;
+                options.Cookie.IsEssential = true;
+            });
 
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-            // Add MVC controllers with views
-            builder.Services.AddControllersWithViews(); // This is for MVC, not Razor Pages
+            builder.Services.AddControllersWithViews(); 
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
                 app.UseMigrationsEndPoint();
@@ -40,15 +38,14 @@ namespace LibraryManagementSystem
                 app.UseHsts();
             }
 
+            app.UseHttpsRedirection();
             app.UseStaticFiles();
-
             app.UseRouting();
-
-            app.UseAuthentication(); // Ensure Authentication is enabled
             app.UseAuthorization();
 
+            app.UseSession();
 
-            // Set up the routes for MVC controllers (without Razor Pages)
+
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");

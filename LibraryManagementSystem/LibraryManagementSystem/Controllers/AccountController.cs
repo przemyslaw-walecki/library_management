@@ -1,94 +1,88 @@
 ﻿using LibraryManagementSystem.Models;
-using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using LibraryManagementSystem.Data;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
+using System.Text;
+using Microsoft.AspNetCore.Identity;
 
 namespace LibraryManagementSystem.Controllers
 {
     public class AccountController : Controller
     {
-        private readonly UserManager<User> _userManager;
-        private readonly SignInManager<User> _signInManager;
+        private readonly LibraryDbContext _context;
 
-        public AccountController(UserManager<User> userManager, SignInManager<User> signInManager)
+        public AccountController(LibraryDbContext context)
         {
-            _userManager = userManager;
-            _signInManager = signInManager;
+            _context = context;
         }
 
         // GET: /Account/Login
         [HttpGet]
         public IActionResult Login()
         {
-            return View(new LoginViewModel());
+            return View(new User());
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Login(LoginViewModel model)
+        public async Task<IActionResult> Login(string Username, string password)
         {
-            if (ModelState.IsValid)
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == Username);
+            if(user ==null || HashPassword(password) != user.Password)
             {
-                var user = await _userManager.FindByEmailAsync(model.Email);
-                if (user != null)
-                {
-                    var result = await _signInManager.PasswordSignInAsync(user, model.Password, model.RememberMe, false);
-
-                    if (result.Succeeded)
-                    {
-                        return RedirectToAction("Index", "Home");
-                    }
-                    else
-                    {
-                        // Set the flag for failed login
-                        ViewData["LoginFailed"] = true;
-                    }
-                }
-                else
-                {
-                    // Set the flag for failed login (user not found)
-                    ViewData["LoginFailed"] = true;
-                }
+                return RedirectToAction("InvalidCredentialsError");
             }
 
-            return View(model);
+            HttpContext.Session.SetInt32(SessionData.SessionKeyUserId, user.Id);
+            HttpContext.Session.SetInt32(SessionData.SessionKeyIsLibrarian, user.IsLibrarian ? 1 : 0);
+            HttpContext.Session.SetString(SessionData.SessionKeyUsername, user.Username);
+
+
+            return RedirectToAction("Index", "Home");
         }
+
+
         // GET: /Account/Register
         [HttpGet]
         public IActionResult Register()
         {
-            return View(new RegisterViewModel());
+            return View(new User());
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Register(RegisterViewModel model)
+        public async Task<IActionResult> Register([Bind("Id,Username,FirstName,LastName,Password,Email,PhoneNumber,IsLibrarian")] User user)
         {
-            if (ModelState.IsValid)
+            var detect_username_conflict = await _context.Users.FirstOrDefaultAsync(m => m.Username == user.Username);
+
+            if (detect_username_conflict != null)
             {
-                var user = new User
-                {
-                    UserName = model.Email,  // or model.Username if you prefer
-                    Email = model.Email,
-                    FirstName = model.FirstName,
-                    LastName = model.LastName
-                };
+                return RedirectToAction("UsernameAlreadyInUseError");
+            }
+            if (ModelState.IsValid) {
+                user.Password = HashPassword(user.Password);
+                _context.Add(user);
+                await _context.SaveChangesAsync();
 
-                var result = await _userManager.CreateAsync(user, model.Password);
+                HttpContext.Session.SetInt32(SessionData.SessionKeyUserId, user.Id);
+                HttpContext.Session.SetInt32(SessionData.SessionKeyIsLibrarian, user.IsLibrarian ? 1 : 0);
+                HttpContext.Session.SetString(SessionData.SessionKeyUsername, user.Username);
 
-                    if (result.Succeeded)
-                    {
-                        await _signInManager.SignInAsync(user, isPersistent: false);
-                        return RedirectToAction("Index", "Home");  // Redirect on successful registration
-                    }
-
-                    foreach (var error in result.Errors)
-                    {
-                        ModelState.AddModelError(string.Empty, error.Description); // Add errors if any
-                    }
+                return RedirectToAction("Index", "Home");
+            }
+            else
+            {
+                
             }
 
-            return View(model); // Return view with errors if model is invalid or registration fails
+
+              
+            return View(user);
+
         }
 
         // POST: /Account/Logout
@@ -96,8 +90,38 @@ namespace LibraryManagementSystem.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
         {
-            await _signInManager.SignOutAsync();
+            HttpContext.Session.Remove(SessionData.SessionKeyUserId);
+            HttpContext.Session.Remove(SessionData.SessionKeyIsLibrarian);
+            HttpContext.Session.Remove(SessionData.SessionKeyUsername);
+            Response.Cookies.Delete(".AspNetCore.Session");
+
             return RedirectToAction("Index", "Home");
         }
+        string HashPassword(string password)
+        {
+            using (var sha256 = SHA256.Create())
+            {
+                var bytes = Encoding.UTF8.GetBytes(password);
+                var hash = sha256.ComputeHash(bytes);
+                return Convert.ToBase64String(hash);
+            }
+        }
+
+
+
+        public bool IsUserLoggedIn()
+        {
+            if (string.IsNullOrWhiteSpace(HttpContext.Session.GetInt32(SessionData.SessionKeyUserId).ToString()))
+            {
+                return false;
+            }
+            else
+            {
+                return true;
+            }
+        }
+
     }
+
 }
+
