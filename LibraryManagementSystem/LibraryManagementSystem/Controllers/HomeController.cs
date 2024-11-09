@@ -14,8 +14,7 @@ namespace LibraryManagementSystem.Controllers
         }
 
         public IActionResult Index()
-        {
-
+        {        
             return View();
         }
 

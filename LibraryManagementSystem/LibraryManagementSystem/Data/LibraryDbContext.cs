@@ -26,8 +26,7 @@ namespace LibraryManagementSystem.Data
         {
             if (!optionsBuilder.IsConfigured)
             {
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
-                optionsBuilder.UseNpgsql("Host=localhost;Database=library_db;Username=library_user;Password=library_password");
+                optionsBuilder.UseNpgsql("Name=ConnectionString");
             }
         }
 
@@ -109,7 +108,7 @@ namespace LibraryManagementSystem.Data
                     .HasColumnName("reservation_date")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                entity.Property(e => e.ReservationExpiry)
+                entity.Property(e => e.ReservationEndDate)
                     .HasColumnType("timestamp without time zone")
                     .HasColumnName("reservation_expiry");
 

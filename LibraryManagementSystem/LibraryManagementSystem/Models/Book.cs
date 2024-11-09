@@ -19,7 +19,12 @@ namespace LibraryManagementSystem.Models
         public bool? IsPermanentlyUnavailable { get; set; }
         public string Name { get; set; } = null!;
 
+
         public virtual ICollection<Lease> Leases { get; set; }
         public virtual ICollection<Reservation> Reservations { get; set; }
+
+        public bool IsLeased;
+        public bool IsReserved;
+
     }
 }

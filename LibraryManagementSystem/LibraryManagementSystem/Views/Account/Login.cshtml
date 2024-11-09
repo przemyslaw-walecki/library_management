@@ -7,12 +7,20 @@
 
 <h2>@ViewData["Title"]</h2>
 
-@if (ViewData["LoginFailed"] != null && (bool)ViewData["LoginFailed"])
+@if (TempData["Success"] != null)
 {
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        Invalid login attempt. Please check your credentials and try again.
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    <div class="alert alert-success">
+        @TempData["Success"]
     </div>
+    TempData["Success"] = null;
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">
+        @TempData["Error"]
+    </div>
+    TempData["Error"] = null;
 }
 
 <form method="post" asp-action="Login">
@@ -23,10 +31,6 @@
     <div class="form-group">
         <label for="Password">Password</label>
         <input type="password" class="form-control" id="Password" name="password" required />
-    </div>
-    <div class="form-group form-check">
-        <input type="checkbox" class="form-check-input" id="RememberMe" name="rememberMe" />
-        <label class="form-check-label" for="RememberMe">Remember me</label>
     </div>
     <button type="submit" class="btn btn-primary">Login</button>
 </form>

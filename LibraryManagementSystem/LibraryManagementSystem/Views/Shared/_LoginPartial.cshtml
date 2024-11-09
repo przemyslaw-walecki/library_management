@@ -8,11 +8,13 @@
         <p class="fs-5 mb-0 me-3" style="line-height: 1.2;">
             Hello, @HttpContextAccessor.HttpContext.Session.GetString("Username")!
         </p>
+        <a asp-controller="Account" asp-action="MyAccount" class="btn btn-secondary me-2">My Account</a>
         <form method="post" asp-action="Logout" asp-controller="Account">
             @Html.AntiForgeryToken()
             <button type="submit" class="btn btn-danger">Logout</button>
         </form>
     </div>
+
 }
 else
 {

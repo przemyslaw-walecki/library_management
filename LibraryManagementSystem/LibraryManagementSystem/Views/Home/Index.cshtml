@@ -5,3 +5,16 @@
 <div class="text-center">
     <h1 class="display-4">Welcome</h1>
 </div>
+@if (ViewBag.IsLibrarian != null && ViewBag.IsLibrarian)
+{
+    <div class="d-flex justify-content-center">
+        <a href="@Url.Action("ManageBooks", "Books")" class="btn btn-primary mx-2">Manage Books</a>
+        <a href="@Url.Action("ManageUsers", "Account")" class="btn btn-secondary mx-2">Manage Users</a>
+    </div>
+}
+else
+{
+    <div class="d-flex justify-content-center">
+        <a href="@Url.Action("List", "Books")" class="btn btn-primary">View Books</a>
+    </div>
+}

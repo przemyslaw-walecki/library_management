@@ -1,0 +1,84 @@
+﻿@model User
+
+@{
+    ViewData["Title"] = "MyAccount";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">
+        @TempData["Success"]
+    </div>
+    TempData["Success"] = null;
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">
+        @TempData["Error"]
+    </div>
+    TempData["Error"] = null;
+}
+
+<div class="user-info">
+    <h4>Your Information</h4>
+    <p><strong>Name:</strong> @Model.FirstName @Model.LastName</p>
+    <p><strong>Email:</strong> @Model.Email</p>
+    <p><strong>Phone Number:</strong> @(Model.PhoneNumber ?? "Not provided")</p>
+</div>
+    @if (@ViewBag.IsLibrarian != null && @ViewBag.IsLibrarian == false){
+
+    <form method="post" action="@Url.Action("DeleteAccount", "Account")">
+        <button type="submit" class="btn btn-danger">Delete My Account</button>
+    </form>
+
+
+
+    <div class="reservations">
+        <h4>Your Reservations</h4>
+        @if (Model.Reservations.Any())
+        {
+            <ul>
+                @foreach (var reservation in Model.Reservations)
+                {
+                    <li>
+                        <strong>@reservation.Book.Name</strong> - Reserved until @reservation.ReservationEndDate.ToShortDateString()
+
+                        <!-- Form to extend reservation -->
+                        <form method="post" action="@Url.Action("CancelReservation", "Account")">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="reservationId" value="@reservation.ReservationId" />
+                            <button type="submit" class="btn btn-warning">Cancel Reservation</button>
+                        </form>
+                    </li>
+                }
+            </ul>
+        }
+        else
+        {
+            <p>You have no reservations.</p>
+        }
+    </div>
+
+
+    <div class="leases">
+        <h4>Your Leases</h4>
+        @if (Model.Leases.Any())
+        {
+            <ul>
+                @foreach (var lease in Model.Leases)
+                {
+                    <li>
+                        <strong>@lease.Book.Name</strong> - Leased until @lease.LeaseEndDate.ToShortDateString()
+                    </li>
+                }
+            </ul>
+        }
+        else
+        {
+            <p>You have no leases.</p>
+        }
+    </div>
+    }

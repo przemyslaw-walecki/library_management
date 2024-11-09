@@ -1,0 +1,43 @@
+﻿@model LeaseBookViewModel
+
+<h2>Lease Book</h2>
+
+@if (ViewBag.ReservationStatus != null)
+{
+    <p>@ViewBag.ReservationStatus</p>
+}
+
+<form method="post" asp-action="LeaseBook">
+    <input type="hidden" name="BookId" value="@Model.BookId" />
+
+    @if (Model.ReservedUsername != null)
+    {
+        <div class="form-group">
+            <label for="Username">Reserved Username</label>
+            <input type="text" class="form-control" id="Username" name="Username" value="@Model.ReservedUsername" readonly />
+        </div>
+    }
+    else
+    {
+        <div class="form-group">
+            <label for="Username">Enter Username</label>
+            <input type="text" class="form-control" id="Username" name="Username" required />
+        </div>
+    }
+
+    <button type="submit" class="btn btn-primary">Lease Book</button>
+</form>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">
+        @TempData["Success"]
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">
+        @TempData["Error"]
+    </div>
+}

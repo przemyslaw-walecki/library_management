@@ -74,11 +74,6 @@ namespace LibraryManagementSystem.Controllers
 
                 return RedirectToAction("Index", "Home");
             }
-            else
-            {
-                
-            }
-
 
               
             return View(user);
@@ -109,16 +104,88 @@ namespace LibraryManagementSystem.Controllers
 
 
 
-        public bool IsUserLoggedIn()
+        public IActionResult MyAccount()
         {
-            if (string.IsNullOrWhiteSpace(HttpContext.Session.GetInt32(SessionData.SessionKeyUserId).ToString()))
+            
+
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (userId == null)
             {
-                return false;
+                return RedirectToAction("Login", "Account");
             }
-            else
+
+            var isLibrarian = HttpContext.Session.GetInt32(SessionData.SessionKeyIsLibrarian) == 1;
+
+            ViewBag.IsLibrarian = isLibrarian;
+
+            var user = _context.Users
+                .Include(u => u.Reservations)
+                .ThenInclude(r => r.Book)
+                .FirstOrDefault(u => u.Id == userId);
+
+            if (user == null)
             {
-                return true;
+                return RedirectToAction("Login", "Account");
             }
+
+            return View(user);
+        }
+
+        [HttpPost]
+        public IActionResult DeleteAccount()
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+
+            if (userId == null)
+            {
+                return RedirectToAction("Login", "Account");
+            }
+
+            var user = _context.Users.FirstOrDefault(u => u.Id == userId.Value);
+            if (user == null)
+            {
+                return RedirectToAction("Login", "Account");
+            }
+
+            // Delete user's reservations and leases
+            var reservations = _context.Reservations.Where(r => r.UserId == userId.Value).ToList();
+            var leases = _context.Leases.Where(l => l.UserId == userId.Value).ToList();
+
+            _context.Reservations.RemoveRange(reservations);
+            _context.Leases.RemoveRange(leases);
+
+            // Delete user account
+            _context.Users.Remove(user);
+            _context.SaveChanges();
+
+            // Log the user out and redirect to login page
+            HttpContext.Session.Clear();
+            return RedirectToAction("Login", "Account");
+        }
+
+        [HttpPost]
+        public IActionResult CancelReservation(int reservationId)
+        {
+            var reservation = _context.Reservations.FirstOrDefault(r => r.ReservationId == reservationId);
+            if (reservation == null)
+            {
+                TempData["Error"] = "Reservation not found.";
+                return RedirectToAction("MyAccount");
+            }
+
+            // Check if the reservation belongs to the current user
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (userId == null || reservation.UserId != userId.Value)
+            {
+                TempData["Error"] = "You can only cancel your own reservations.";
+                return RedirectToAction("MyAccount");
+            }
+
+            _context.Reservations.Remove(reservation);
+            _context.SaveChanges();
+
+            TempData["Success"] = "Reservation cancelled successfully.";
+            return RedirectToAction("MyAccount", new User());
         }
 
     }

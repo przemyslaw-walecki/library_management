@@ -1,0 +1,15 @@
+﻿<h2>Manage Books</h2>
+
+@foreach (var book in Model)
+{
+    <div class="book-item">
+        <h4>@book.Name</h4>
+        <p>@book.Author</p>
+        <p>@book.Publisher</p>
+        <p>@book.DateOfPublication?.ToShortDateString()</p>
+
+        <a href="@Url.Action("EditBook", "Books", new { id = book.BookId })" class="btn btn-warning">Edit</a>
+        <a href="@Url.Action("DeleteBook", "Books", new { id = book.BookId })" class="btn btn-danger">Delete</a>
+        <a href="@Url.Action("LeaseBook", "Books", new { id = book.BookId })" class="btn btn-success">Lease</a>
+    </div>
+}

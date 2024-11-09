@@ -1,0 +1,46 @@
+﻿@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">
+        @TempData["Success"]
+    </div>
+    TempData["Success"] = null;
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">
+        @TempData["Error"]
+    </div>
+    TempData["Error"] = null;
+}
+@foreach (var book in Model)
+{
+
+    <div class="book-item">
+        <h4>@book.Name</h4>
+        <p>@book.Author</p>
+        <p>@book.Publisher</p>
+        <p>@book.DateOfPublication?.ToShortDateString()</p>
+        <p>@book.Price</p>
+
+
+        @if (ViewBag.IsUserLoggedIn != null && ViewBag.IsUserLoggedIn)
+        {
+            if (book.IsReserved)
+            {
+                <span class="text-danger">Reserved</span>
+            }
+            else
+            {
+                <form method="post" action="@Url.Action("ReserveBook", "Books")">
+                    <input type="hidden" name="bookId" value="@book.BookId" />
+                    <button type="submit" class="btn btn-success">Reserve</button>
+                </form>
+            }
+        }
+        else
+        {
+            <p>Login to reserve this book.</p>
+        }
+    </div>
+}
