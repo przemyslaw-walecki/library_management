@@ -32,7 +32,7 @@ namespace LibraryManagementSystem.Models
 
         [Required]
         [Column("password")]
-        public string Password { get; set; } = null!;
+        public string? Password { get; set; } = null!;
 
         [Phone]
         [Column("phone_number")]

@@ -1,15 +1,30 @@
 ﻿@{
     ViewData["Title"] = "Home Page";
 }
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">
+        @TempData["Success"]
+    </div>
+    TempData["Success"] = null;
+}
 
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">
+        @TempData["Error"]
+    </div>
+    TempData["Error"] = null;
+}
 <div class="text-center">
     <h1 class="display-4">Welcome</h1>
 </div>
-@if (ViewBag.IsLibrarian != null && ViewBag.IsLibrarian)
+@if (@ViewBag.IsLibrarian != null && @ViewBag.IsLibrarian)
 {
     <div class="d-flex justify-content-center">
         <a href="@Url.Action("ManageBooks", "Books")" class="btn btn-primary mx-2">Manage Books</a>
         <a href="@Url.Action("ManageUsers", "Account")" class="btn btn-secondary mx-2">Manage Users</a>
+        <a href="@Url.Action("Index", "Reservations")" class="btn btn-secondary mx-2">Manage Reservations</a>
     </div>
 }
 else

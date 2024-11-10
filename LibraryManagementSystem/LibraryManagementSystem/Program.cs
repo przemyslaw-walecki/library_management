@@ -1,5 +1,7 @@
 using LibraryManagementSystem.Data;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 
 namespace LibraryManagementSystem
 {
@@ -7,6 +9,9 @@ namespace LibraryManagementSystem
     {
         public static void Main(string[] args)
         {
+
+            
+
             var builder = WebApplication.CreateBuilder(args);
 
             builder.Services.AddHttpContextAccessor();
@@ -24,8 +29,10 @@ namespace LibraryManagementSystem
 
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-            builder.Services.AddControllersWithViews(); 
+            builder.Services.AddControllersWithViews();
 
+            AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+            
             var app = builder.Build();
 
             if (app.Environment.IsDevelopment())

@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace LibraryManagementSystem.Models
 {
@@ -14,12 +16,14 @@ namespace LibraryManagementSystem.Models
         public int BookId { get; set; }
         public string Author { get; set; } = null!;
         public string? Publisher { get; set; }
-        public DateOnly? DateOfPublication { get; set; }
-        public decimal? Price { get; set; }
-        public bool? IsPermanentlyUnavailable { get; set; }
+
+        [DataType(DataType.Date)]
+        [Column("date_of_publication")]
+        public DateTime? DateOfPublication { get; set; }
+        public decimal Price { get; set; }
+        public bool IsPermanentlyUnavailable { get; set; }
         public string Name { get; set; } = null!;
-
-
+        
         public virtual ICollection<Lease> Leases { get; set; }
         public virtual ICollection<Reservation> Reservations { get; set; }
 

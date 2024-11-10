@@ -14,7 +14,10 @@ namespace LibraryManagementSystem.Controllers
         }
 
         public IActionResult Index()
-        {        
+        {
+            var isLibrarian = HttpContext.Session.GetInt32(SessionData.SessionKeyIsLibrarian) == 1;
+
+            ViewBag.IsLibrarian = isLibrarian;
             return View();
         }
 

@@ -1,5 +1,27 @@
 ﻿<h2>Manage Books</h2>
 
+
+@{
+    ViewData["Title"] = "ManageBooks";
+}
+
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">
+        @TempData["Success"]
+    </div>
+    TempData["Success"] = null;
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">
+        @TempData["Error"]
+    </div>
+    TempData["Error"] = null;
+}
+
 @foreach (var book in Model)
 {
     <div class="book-item">
@@ -8,8 +30,16 @@
         <p>@book.Publisher</p>
         <p>@book.DateOfPublication?.ToShortDateString()</p>
 
+        
         <a href="@Url.Action("EditBook", "Books", new { id = book.BookId })" class="btn btn-warning">Edit</a>
-        <a href="@Url.Action("DeleteBook", "Books", new { id = book.BookId })" class="btn btn-danger">Delete</a>
-        <a href="@Url.Action("LeaseBook", "Books", new { id = book.BookId })" class="btn btn-success">Lease</a>
+        @if (!book.IsPermanentlyUnavailable)
+        {
+            <a href="@Url.Action("DeleteBook", "Books", new { id = book.BookId })" class="btn btn-danger">Delete</a>
+        }
+        else
+        {
+            <p>Book permanently unavailable</p>
+        }
+
     </div>
 }

@@ -20,6 +20,28 @@ namespace LibraryManagementSystem.Controllers
             _context = context;
         }
 
+        private bool IsUserLoggedIn()
+        {
+            var userId = HttpContext.Session.GetInt32(SessionData.SessionKeyUserId);
+            return userId.HasValue;
+        }
+
+        private bool IsUserLibrarian()
+        {
+            var isLibrarian = HttpContext.Session.GetInt32(SessionData.SessionKeyIsLibrarian);
+            return isLibrarian == 1; 
+        }
+
+        string HashPassword(string password)
+        {
+            using (var sha256 = SHA256.Create())
+            {
+                var bytes = Encoding.UTF8.GetBytes(password);
+                var hash = sha256.ComputeHash(bytes);
+                return Convert.ToBase64String(hash);
+            }
+        }
+
         // GET: /Account/Login
         [HttpGet]
         public IActionResult Login()
@@ -92,21 +114,16 @@ namespace LibraryManagementSystem.Controllers
 
             return RedirectToAction("Index", "Home");
         }
-        string HashPassword(string password)
-        {
-            using (var sha256 = SHA256.Create())
-            {
-                var bytes = Encoding.UTF8.GetBytes(password);
-                var hash = sha256.ComputeHash(bytes);
-                return Convert.ToBase64String(hash);
-            }
-        }
-
-
+        
 
         public IActionResult MyAccount()
         {
-            
+
+            if (!IsUserLoggedIn())
+            {
+                TempData["Error"] = "You do not have access to this page";
+                return RedirectToAction("Index", "Home");
+            }
 
             var userId = HttpContext.Session.GetInt32("UserId");
             if (userId == null)
@@ -134,6 +151,11 @@ namespace LibraryManagementSystem.Controllers
         [HttpPost]
         public IActionResult DeleteAccount()
         {
+            if (!IsUserLoggedIn())
+            {
+                TempData["Error"] = "You do not have access to this page";
+                return RedirectToAction("Index", "Home");
+            }
             var userId = HttpContext.Session.GetInt32("UserId");
 
             if (userId == null)
@@ -147,18 +169,16 @@ namespace LibraryManagementSystem.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
-            // Delete user's reservations and leases
             var reservations = _context.Reservations.Where(r => r.UserId == userId.Value).ToList();
             var leases = _context.Leases.Where(l => l.UserId == userId.Value).ToList();
 
             _context.Reservations.RemoveRange(reservations);
             _context.Leases.RemoveRange(leases);
 
-            // Delete user account
+
             _context.Users.Remove(user);
             _context.SaveChanges();
 
-            // Log the user out and redirect to login page
             HttpContext.Session.Clear();
             return RedirectToAction("Login", "Account");
         }
@@ -166,6 +186,11 @@ namespace LibraryManagementSystem.Controllers
         [HttpPost]
         public IActionResult CancelReservation(int reservationId)
         {
+            if (!IsUserLoggedIn())
+            {
+                TempData["Error"] = "You do not have access to this page";
+                return RedirectToAction("Index", "Home");
+            }
             var reservation = _context.Reservations.FirstOrDefault(r => r.ReservationId == reservationId);
             if (reservation == null)
             {
@@ -173,7 +198,6 @@ namespace LibraryManagementSystem.Controllers
                 return RedirectToAction("MyAccount");
             }
 
-            // Check if the reservation belongs to the current user
             var userId = HttpContext.Session.GetInt32("UserId");
             if (userId == null || reservation.UserId != userId.Value)
             {
@@ -188,7 +212,70 @@ namespace LibraryManagementSystem.Controllers
             return RedirectToAction("MyAccount", new User());
         }
 
-    }
+        public IActionResult EditUser(int id)
+        {
+            if (!IsUserLoggedIn() || !IsUserLibrarian())
+            {
+                TempData["Error"] = "You do not have access to this page";
+                return RedirectToAction("Index", "Home");
+            }
+            var user = _context.Users.FirstOrDefault(u => u.Id == id);
+            if (user == null)
+            {
+                TempData["Error"] = "User not found.";
+                return RedirectToAction("Index");
 
+            }
+            user.Password = null;
+
+            return View(user);
+        }
+
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult EditUser(User user)
+        {
+            if (!IsUserLoggedIn() || !IsUserLibrarian())
+            {
+                TempData["Error"] = "You do not have access to this page";
+                return RedirectToAction("Index", "Home");
+            }
+            if (ModelState.IsValid)
+            {
+
+                    if (!string.IsNullOrEmpty(user.Password))
+                    {
+                        var hashedPassword = HashPassword(user.Password);
+                        user.Password = hashedPassword;
+                    }
+
+                    _context.Update(user);
+                    _context.SaveChanges();
+
+                    TempData["Success"] = "User updated successfully!";
+                    return RedirectToAction("Index"); 
+                }
+            
+            return View(user);
+        }
+
+        public IActionResult ManageUsers()
+        {
+            if (!IsUserLoggedIn() || !IsUserLibrarian())
+            {
+                TempData["Error"] = "You do not have access to this page";
+                return RedirectToAction("Index", "Home");
+            }
+            var users = _context.Users.Where(u => u.IsLibrarian == false).ToList(); 
+            return View(users); 
+        }
+
+    }
 }
+
+    
+
+
+
 
