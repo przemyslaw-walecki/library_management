@@ -56,7 +56,8 @@ namespace LibraryManagementSystem.Controllers
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == Username);
             if(user ==null || HashPassword(password) != user.Password)
             {
-                return RedirectToAction("InvalidCredentialsError");
+                TempData["Error"] = "Invalid Credentials";
+                return RedirectToAction(nameof(Login));
             }
 
             HttpContext.Session.SetInt32(SessionData.SessionKeyUserId, user.Id);
@@ -83,7 +84,8 @@ namespace LibraryManagementSystem.Controllers
 
             if (detect_username_conflict != null)
             {
-                return RedirectToAction("UsernameAlreadyInUseError");
+                TempData["Error"] = "Username already exists.";
+                return RedirectToAction(nameof(Register));
             }
             if (ModelState.IsValid) {
                 user.Password = HashPassword(user.Password);
@@ -105,7 +107,7 @@ namespace LibraryManagementSystem.Controllers
         // POST: /Account/Logout
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Logout()
+        public IActionResult Logout()
         {
             HttpContext.Session.Remove(SessionData.SessionKeyUserId);
             HttpContext.Session.Remove(SessionData.SessionKeyIsLibrarian);
@@ -138,6 +140,8 @@ namespace LibraryManagementSystem.Controllers
             var user = _context.Users
                 .Include(u => u.Reservations)
                 .ThenInclude(r => r.Book)
+                .Include(u => u.Leases)
+                .ThenInclude(r => r.Book)
                 .FirstOrDefault(u => u.Id == userId);
 
             if (user == null)
@@ -151,66 +155,44 @@ namespace LibraryManagementSystem.Controllers
         [HttpPost]
         public IActionResult DeleteAccount()
         {
-            if (!IsUserLoggedIn())
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (userId == null)
             {
                 TempData["Error"] = "You do not have access to this page";
                 return RedirectToAction("Index", "Home");
             }
-            var userId = HttpContext.Session.GetInt32("UserId");
-
-            if (userId == null)
-            {
-                return RedirectToAction("Login", "Account");
-            }
+            
 
             var user = _context.Users.FirstOrDefault(u => u.Id == userId.Value);
             if (user == null)
             {
-                return RedirectToAction("Login", "Account");
+                TempData["Error"] = "You do not have access to this page";
+                return RedirectToAction("Index", "Home");
+            }
+
+            var leases = _context.Leases.Where(l => l.UserId == userId.Value && l.IsActive).ToList();
+            if (leases.Count != 0)
+            {
+                TempData["Error"] = "You can't delete an account with active leases.";
+                return RedirectToAction(nameof(MyAccount));
             }
 
             var reservations = _context.Reservations.Where(r => r.UserId == userId.Value).ToList();
-            var leases = _context.Leases.Where(l => l.UserId == userId.Value).ToList();
+            var leases_history = _context.Leases.Where(l => l.UserId == userId.Value).ToList();
 
+            _context.Leases.RemoveRange(leases_history);
             _context.Reservations.RemoveRange(reservations);
-            _context.Leases.RemoveRange(leases);
-
 
             _context.Users.Remove(user);
             _context.SaveChanges();
 
             HttpContext.Session.Clear();
-            return RedirectToAction("Login", "Account");
+
+            TempData["Success"] = "Account deleted successfully.";
+            return RedirectToAction("Index", "Home");
         }
 
-        [HttpPost]
-        public IActionResult CancelReservation(int reservationId)
-        {
-            if (!IsUserLoggedIn())
-            {
-                TempData["Error"] = "You do not have access to this page";
-                return RedirectToAction("Index", "Home");
-            }
-            var reservation = _context.Reservations.FirstOrDefault(r => r.ReservationId == reservationId);
-            if (reservation == null)
-            {
-                TempData["Error"] = "Reservation not found.";
-                return RedirectToAction("MyAccount");
-            }
-
-            var userId = HttpContext.Session.GetInt32("UserId");
-            if (userId == null || reservation.UserId != userId.Value)
-            {
-                TempData["Error"] = "You can only cancel your own reservations.";
-                return RedirectToAction("MyAccount");
-            }
-
-            _context.Reservations.Remove(reservation);
-            _context.SaveChanges();
-
-            TempData["Success"] = "Reservation cancelled successfully.";
-            return RedirectToAction("MyAccount", new User());
-        }
+    
 
         public IActionResult EditUser(int id)
         {

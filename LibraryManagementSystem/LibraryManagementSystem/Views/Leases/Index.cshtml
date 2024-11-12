@@ -1,0 +1,69 @@
+﻿@model IEnumerable<LibraryManagementSystem.Models.Lease>
+
+@{
+    ViewData["Title"] = "Leases";
+}
+
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">
+        @TempData["Success"]
+    </div>
+    TempData["Success"] = null;
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">
+        @TempData["Error"]
+    </div>
+    TempData["Error"] = null;
+}
+
+
+<h1>Active Leases</h1>
+
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.LeaseStartDate)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.LeaseEndDate)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Book)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.User)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.LeaseStartDate)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.LeaseEndDate)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Book.BookId)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.User.FirstName)
+            </td>
+            <td>
+
+                <a asp-action="Details" asp-route-id="@item.LeaseId">Details</a> |
+                <a asp-action="EndLease" asp-route-id="@item.LeaseId">End Lease</a>
+            </td>
+        </tr>
+}
+    </tbody>
+</table>

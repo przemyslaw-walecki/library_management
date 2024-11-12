@@ -46,13 +46,21 @@
                 {
                     <li>
                         <strong>@reservation.Book.Name</strong> - Reserved until @reservation.ReservationEndDate.ToShortDateString()
-
-                        <!-- Form to extend reservation -->
-                        <form method="post" action="@Url.Action("CancelReservation", "Account")">
+                        @if(reservation.IsActive)
+                        {
+                        <form method="post" action="@Url.Action("Delete", "Reservations")">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="reservationId" value="@reservation.ReservationId" />
                             <button type="submit" class="btn btn-warning">Cancel Reservation</button>
-                        </form>
+                            </form>
+                        }
+                        else 
+                        {
+                            {
+                                <span class="text-muted">- Ended on @reservation.ReservationEndDate.ToShortDateString()</span>
+                            }
+                        }
+                        
                     </li>
                 }
             </ul>
@@ -72,7 +80,16 @@
                 @foreach (var lease in Model.Leases)
                 {
                     <li>
-                        <strong>@lease.Book.Name</strong> - Leased until @lease.LeaseEndDate.ToShortDateString()
+                        <strong>@lease.Book.Name</strong> - Leased since @lease.LeaseStartDate.ToShortDateString()
+
+                        @if (lease.LeaseEndDate.HasValue)
+                        {
+                            <span class="text-muted">- Ended on @lease.LeaseEndDate.Value.ToShortDateString()</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">Lease is active</span>
+                        }
                     </li>
                 }
             </ul>

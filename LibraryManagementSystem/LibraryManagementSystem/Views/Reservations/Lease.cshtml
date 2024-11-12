@@ -1,0 +1,30 @@
+﻿@model LibraryManagementSystem.Models.Reservation
+
+@{
+    ViewData["Title"] = "Lease";
+}
+
+<h3>Are you sure you want to lease a book based on this reservation?</h3>
+<div>
+    <h4>Reservation Details</h4>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-2">@Html.DisplayNameFor(model => model.ReservationDate)</dt>
+        <dd class="col-sm-10">@Html.DisplayFor(model => model.ReservationDate)</dd>
+
+        <dt class="col-sm-2">@Html.DisplayNameFor(model => model.ReservationEndDate)</dt>
+        <dd class="col-sm-10">@Html.DisplayFor(model => model.ReservationEndDate)</dd>
+
+        <dt class="col-sm-2">@Html.DisplayNameFor(model => model.Book.Name)</dt>
+        <dd class="col-sm-10">@Html.DisplayFor(model => model.Book.Name)</dd>
+
+        <dt class="col-sm-2">@Html.DisplayNameFor(model => model.User.Username)</dt>
+        <dd class="col-sm-10">@Html.DisplayFor(model => model.User.Username)</dd>
+    </dl>
+
+    <form asp-action="LeaseConfirmed" method="post">
+        <input type="hidden" asp-for="ReservationId" />
+        <button type="submit" class="btn btn-success">Confirm Lease</button>
+        <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
