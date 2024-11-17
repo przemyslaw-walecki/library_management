@@ -13,6 +13,14 @@
     </div>
     TempData["Error"] = null;
 }
+
+<form asp-action="List" method="get">
+    <div class="input-group mb-3">
+        <input type="text" name="searchString" class="form-control" placeholder="Search by author, publisher, or name" value="@ViewData["CurrentFilter"]" />
+        <button type="submit" class="btn btn-primary">Search</button>
+    </div>
+</form>
+
 @foreach (var book in Model)
 {
 

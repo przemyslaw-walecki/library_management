@@ -26,20 +26,26 @@ namespace YourProject.Controllers
             return true;
         }
 
-        public IActionResult List()
+        public IActionResult List(string searchString)
         {
-            var books = _context.Books
-                 .ToList();
+            var books = _context.Books.AsQueryable();
+
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                books = books.Where(b => b.Name.Contains(searchString) ||
+                                         b.Author.Contains(searchString) ||
+                                        (b.Publisher != null && b.Publisher.Contains(searchString)));
+            }
+
+            var bookList = books.ToList();
 
             var userId = HttpContext.Session.GetInt32("UserId");
             bool isUserLoggedIn = userId != null;
 
-            foreach (var book in books)
+            foreach (var book in bookList)
             {
-
                 var activeReservation = _context.Reservations
                     .FirstOrDefault(r => r.BookId == book.BookId && r.ReservationEndDate >= DateTime.Now);
-
 
                 var activeLease = _context.Leases
                     .FirstOrDefault(l => l.BookId == book.BookId && l.LeaseEndDate >= DateTime.Now);
@@ -49,8 +55,10 @@ namespace YourProject.Controllers
             }
 
             ViewBag.IsUserLoggedIn = isUserLoggedIn;
-            return View(books);
+            ViewBag.CurrentFilter = searchString;
+            return View(bookList);
         }
+
 
 
 
