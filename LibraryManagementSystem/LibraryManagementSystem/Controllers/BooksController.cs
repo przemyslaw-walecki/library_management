@@ -28,7 +28,7 @@ namespace YourProject.Controllers
 
         public IActionResult List(string searchString)
         {
-            if(IsUserLibrarian())
+            if (IsUserLibrarian())
             {
                 TempData["Error"] = "You do not have access to this page.";
                 return RedirectToAction("Index", "Home");
@@ -53,7 +53,7 @@ namespace YourProject.Controllers
                     .FirstOrDefault(r => r.BookId == book.BookId);
 
                 var activeLease = _context.Leases
-                    .FirstOrDefault(l => l.BookId == book.BookId && l.LeaseEndDate >= DateTime.Now);
+                    .FirstOrDefault(l => l.BookId == book.BookId && l.LeaseEndDate == null);
 
                 book.IsReserved = activeReservation != null;
                 book.IsLeased = activeLease != null;
@@ -80,7 +80,7 @@ namespace YourProject.Controllers
 
             var book = _context.Books.FirstOrDefault(b => b.BookId == bookId);
 
-            if (book == null)
+            if (book == null || book.IsPermanentlyUnavailable)
             {
                 TempData["Error"] = "Book not found.";
                 return RedirectToAction("List");
@@ -88,14 +88,14 @@ namespace YourProject.Controllers
 
 
             var existingReservation = _context.Reservations
-                .FirstOrDefault(r => r.BookId == bookId && r.ReservationEndDate >= DateTime.Now);
+                .FirstOrDefault(r => r.BookId == bookId);
+            var existingLease = _context.Leases.FirstOrDefault(l => l.BookId == bookId && l.LeaseEndDate < DateTime.Now);
 
-            if (existingReservation != null)
+            if (existingReservation != null || existingReservation != null)
             {
-                TempData["Error"] = "This book is already reserved.";
+                TempData["Error"] = "This book is already leased or reserved.";
                 return RedirectToAction("List");
             }
-
 
             var newReservation = new Reservation
             {
@@ -137,7 +137,7 @@ namespace YourProject.Controllers
             return View();
         }
         [HttpPost]
-        public IActionResult AddBook(Book book)
+        public IActionResult AddBook([Bind("Name, Author, Publisher, Date_of_publication, Price")]Book book)
         {
             if (!IsUserLibrarian())
             {
@@ -195,11 +195,21 @@ namespace YourProject.Controllers
                 return RedirectToAction("Index", "Home");
             }
             var book = _context.Books.FirstOrDefault(b => b.BookId == id);
+            var leases = _context.Leases.FirstOrDefault(b => b.BookId == id);
             if (book != null && book.IsPermanentlyUnavailable == false)
             {
-                book.IsPermanentlyUnavailable = true;
-                _context.SaveChanges();
-                TempData["Success"] = "Book marked as permanently unavailable successfully.";
+                if (leases != null)
+                {
+                    book.IsPermanentlyUnavailable = true;
+                    _context.SaveChanges();
+                    TempData["Success"] = "Book marked as permanently unavailable successfully.";
+                }
+                else
+                {
+                    _context.Remove(book);
+                    _context.SaveChanges();
+                    TempData["Success"] = "Book deleted successfully";
+                }
             }
             else
             {

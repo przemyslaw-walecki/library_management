@@ -38,6 +38,10 @@
             {
                 <span class="text-danger">Reserved</span>
             }
+            else if(book.IsLeased)
+            {
+                <span class="text-danger">Leased</span>
+            }
             else
             {
                 <form method="post" action="@Url.Action("ReserveBook", "Books")">

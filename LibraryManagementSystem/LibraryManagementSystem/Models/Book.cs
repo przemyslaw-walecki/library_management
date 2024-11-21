@@ -21,7 +21,7 @@ namespace LibraryManagementSystem.Models
         [Column("date_of_publication")]
         public DateTime? DateOfPublication { get; set; }
         public decimal Price { get; set; }
-        public bool? IsPermanentlyUnavailable { get; set; }
+        public bool IsPermanentlyUnavailable { get; set; }
         public string Name { get; set; } = null!;
         
         public virtual ICollection<Lease> Leases { get; set; }

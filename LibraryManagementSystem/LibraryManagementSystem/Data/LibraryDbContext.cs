@@ -45,8 +45,7 @@ namespace LibraryManagementSystem.Data
                 entity.Property(e => e.DateOfPublication).HasColumnName("date_of_publication");
 
                 entity.Property(e => e.IsPermanentlyUnavailable)
-                    .HasColumnName("is_permanently_unavailable")
-                    .HasDefaultValueSql("false");
+                    .HasColumnName("is_permanently_unavailable");
 
                 entity.Property(e => e.Name)
                     .HasMaxLength(100)
