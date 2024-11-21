@@ -149,6 +149,30 @@ namespace LibraryManagementSystem.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        public async Task<IActionResult> Details(int? id)
+        {
+            if (!IsUserLoggedIn() || !IsUserLibrarian())
+            {
+                TempData["Error"] = "You do not have access to this page";
+                return RedirectToAction("Index", "Home");
+            }
+            if (id == null || _context.Reservations == null)
+            {
+                return NotFound();
+            }
+
+            var reservation = await _context.Reservations
+                .Include(l => l.Book)
+                .Include(l => l.User)
+                .FirstOrDefaultAsync(m => m.ReservationId == id);
+            if (reservation == null)
+            {
+                return NotFound();
+            }
+
+            return View(reservation);
+        }
+
         private bool ReservationExists(int id)
         {
           return (_context.Reservations?.Any(e => e.ReservationId == id)).GetValueOrDefault();

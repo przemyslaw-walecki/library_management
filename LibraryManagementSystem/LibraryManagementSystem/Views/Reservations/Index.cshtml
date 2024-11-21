@@ -41,10 +41,12 @@
                 <td>@Html.DisplayFor(modelItem => item.Book.Name)</td>
                 <td>@Html.DisplayFor(modelItem => item.User.Username)</td>
                 <td>
+                    
                     <form asp-action="Lease" method="get">
                         <input type="hidden" name="reservationId" value="@item.ReservationId" />
                         <button type="submit" class="btn btn-primary">Lease</button>
                     </form>
+                    <a asp-action="Details" asp-route-id="@item.ReservationId">Details</a>
                 </td>
             </tr>
         }
