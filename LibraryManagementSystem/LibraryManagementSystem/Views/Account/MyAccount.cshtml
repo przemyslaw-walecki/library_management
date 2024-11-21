@@ -46,21 +46,12 @@
                 {
                     <li>
                         <strong>@reservation.Book.Name</strong> - Reserved until @reservation.ReservationEndDate.ToShortDateString()
-                        @if(reservation.IsActive)
-                        {
+
                         <form method="post" action="@Url.Action("Delete", "Reservations")">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="reservationId" value="@reservation.ReservationId" />
                             <button type="submit" class="btn btn-warning">Cancel Reservation</button>
-                            </form>
-                        }
-                        else 
-                        {
-                            {
-                                <span class="text-muted">- Ended on @reservation.ReservationEndDate.ToShortDateString()</span>
-                            }
-                        }
-                        
+                            </form>       
                     </li>
                 }
             </ul>

@@ -30,7 +30,7 @@
         <p>@book.Publisher</p>
         <p>@book.DateOfPublication?.ToShortDateString()</p>
 
-        
+
         <a href="@Url.Action("EditBook", "Books", new { id = book.BookId })" class="btn btn-warning">Edit</a>
         @if (!book.IsPermanentlyUnavailable)
         {

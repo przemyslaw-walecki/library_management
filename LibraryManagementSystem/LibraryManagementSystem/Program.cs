@@ -9,9 +9,6 @@ namespace LibraryManagementSystem
     {
         public static void Main(string[] args)
         {
-
-            
-
             var builder = WebApplication.CreateBuilder(args);
 
             builder.Services.AddHttpContextAccessor();
@@ -28,6 +25,8 @@ namespace LibraryManagementSystem
             });
 
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();
+
+            builder.Services.AddHostedService<ExpiredReservationCleaner>();
 
             builder.Services.AddControllersWithViews();
 

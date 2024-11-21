@@ -39,7 +39,7 @@ namespace YourProject.Controllers
             {
                 books = books.Where(b => b.Name.Contains(searchString) ||
                                          b.Author.Contains(searchString) ||
-                                        (b.Publisher != null && b.Publisher.Contains(searchString)));
+                                        (b.Publisher != null && b.Publisher.Contains(searchString)) && b.IsPermanentlyUnavailable == false);
             }
 
             var bookList = books.ToList();
@@ -50,7 +50,7 @@ namespace YourProject.Controllers
             foreach (var book in bookList)
             {
                 var activeReservation = _context.Reservations
-                    .FirstOrDefault(r => r.BookId == book.BookId && r.ReservationEndDate >= DateTime.Now);
+                    .FirstOrDefault(r => r.BookId == book.BookId);
 
                 var activeLease = _context.Leases
                     .FirstOrDefault(l => l.BookId == book.BookId && l.LeaseEndDate >= DateTime.Now);
@@ -102,8 +102,7 @@ namespace YourProject.Controllers
                 BookId = bookId,
                 UserId = userId.Value,
                 ReservationDate = DateTime.Now,
-                ReservationEndDate = DateTime.Now.Date.AddDays(2).AddSeconds(-1),
-                IsActive = true
+                ReservationEndDate = DateTime.Now.Date.AddDays(2).AddSeconds(-1)
             };
 
 

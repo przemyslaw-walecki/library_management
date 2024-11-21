@@ -38,7 +38,7 @@ namespace LibraryManagementSystem.Controllers
                 TempData["Error"] = "You do not have access to this page";
                 return RedirectToAction("Index", "Home");
             }
-            var libraryDbContext = _context.Reservations.Include(r => r.Book).Include(r => r.User).Where(r => r.ReservationEndDate > DateTime.Now && r.IsActive);
+            var libraryDbContext = _context.Reservations.Include(r => r.Book).Include(r => r.User).Where(r => r.ReservationEndDate > DateTime.Now);
             return View(await libraryDbContext.ToListAsync());
         }
         
@@ -99,7 +99,7 @@ namespace LibraryManagementSystem.Controllers
             var reservation = _context.Reservations.Include(r => r.User).Include(r => r.Book)
                 .FirstOrDefault(r => r.ReservationId == reservationId);
 
-            if (reservation == null || !reservation.IsActive || reservation.ReservationEndDate < DateTime.Now)
+            if (reservation == null || reservation.ReservationEndDate < DateTime.Now)
             {
                 TempData["Error"] = "Error leasing from reservation.";
                 return RedirectToAction(nameof(Index));
@@ -128,9 +128,7 @@ namespace LibraryManagementSystem.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            reservation.IsActive = false;  
-            reservation.ReservationEndDate = DateTime.Now;
-            _context.Reservations.Update(reservation);
+            
 
             var lease = new Lease
             {
@@ -142,6 +140,7 @@ namespace LibraryManagementSystem.Controllers
 
             };
 
+            _context.Remove(reservation);
             _context.Leases.Add(lease);
             _context.SaveChanges();
 

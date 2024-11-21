@@ -152,8 +152,7 @@ namespace LibraryManagementSystem.Data
                     .HasColumnName("first_name");
 
                 entity.Property(e => e.IsLibrarian)
-                    .HasColumnName("is_librarian")
-                    .HasDefaultValueSql("false");
+                    .HasColumnName("is_librarian");
 
                 entity.Property(e => e.LastName)
                     .HasMaxLength(50)

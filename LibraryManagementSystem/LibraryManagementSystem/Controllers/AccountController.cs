@@ -89,6 +89,7 @@ namespace LibraryManagementSystem.Controllers
             }
             if (ModelState.IsValid) {
                 user.Password = HashPassword(user.Password);
+                user.IsLibrarian = false;
                 _context.Add(user);
                 await _context.SaveChangesAsync();
 
