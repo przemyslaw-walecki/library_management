@@ -44,7 +44,7 @@ namespace LibraryManagementSystem.Controllers
         
         public IActionResult Delete(int reservationId)
         {
-            var reservation = _context.Reservations
+            var reservation = _context.Reservations.Include(r => r.Book)
                 .FirstOrDefault(r => r.ReservationId == reservationId);
 
             if (reservation == null)
@@ -137,7 +137,9 @@ namespace LibraryManagementSystem.Controllers
                 BookId = reservation.BookId,
                 UserId = reservation.UserId,
                 LeaseStartDate = DateTime.Now,
-                LeaseEndDate = null 
+                LeaseEndDate = null,
+                IsActive = true
+
             };
 
             _context.Leases.Add(lease);

@@ -28,6 +28,11 @@ namespace YourProject.Controllers
 
         public IActionResult List(string searchString)
         {
+            if(IsUserLibrarian())
+            {
+                TempData["Error"] = "You do not have access to this page.";
+                return RedirectToAction("Index", "Home");
+            }
             var books = _context.Books.AsQueryable();
 
             if (!string.IsNullOrEmpty(searchString))
@@ -97,7 +102,8 @@ namespace YourProject.Controllers
                 BookId = bookId,
                 UserId = userId.Value,
                 ReservationDate = DateTime.Now,
-                ReservationEndDate = DateTime.Now.Date.AddDays(2).AddSeconds(-1)  
+                ReservationEndDate = DateTime.Now.Date.AddDays(2).AddSeconds(-1),
+                IsActive = true
             };
 
 
@@ -114,7 +120,11 @@ namespace YourProject.Controllers
 
         public IActionResult ManageBooks()
         {
-
+            if (!IsUserLibrarian())
+            {
+                TempData["Error"] = "You do not have access to this page";
+                return RedirectToAction("Index", "Home");
+            }
             var books = _context.Books.ToList();
             return View(books);
         }

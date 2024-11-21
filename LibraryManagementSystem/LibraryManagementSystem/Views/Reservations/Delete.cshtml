@@ -26,16 +26,16 @@
             @Html.DisplayNameFor(model => model.Book)
         </dt>
         <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Book.BookId)
+            @Html.DisplayFor(model => model.Book.Name)<br />
+            @Html.DisplayFor(model => model.Book.Author)<br />
+            @Html.DisplayFor(model => model.Book.Publisher)<br />
         </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.User)
-        </dt>
+        
     </dl>
     
     <form asp-action="DeleteConfirmed">
         <input type="hidden" asp-for="ReservationId" />
-        <input type="submit" value="Delete" class="btn btn-danger" /> |
+        <input type="submit" value="Cancel" class="btn btn-danger" /> |
         <a asp-action="MyAccount" asp-controller="Account">Back to Account</a>
     </form>
 </div>
