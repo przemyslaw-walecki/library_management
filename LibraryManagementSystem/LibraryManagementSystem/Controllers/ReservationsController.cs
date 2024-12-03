@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using LibraryManagementSystem.Data;
 using LibraryManagementSystem.Models;
@@ -19,33 +17,35 @@ namespace LibraryManagementSystem.Controllers
             _context = context;
         }
 
-        private bool IsUserLoggedIn()
-        {
-            var userId = HttpContext.Session.GetInt32(SessionData.SessionKeyUserId);
-            return userId.HasValue;
-        }
+        private bool IsUserLoggedIn() =>
+            HttpContext.Session.GetInt32(SessionData.SessionKeyUserId).HasValue;
 
-        private bool IsUserLibrarian()
-        {
-            var isLibrarian = HttpContext.Session.GetInt32(SessionData.SessionKeyIsLibrarian);
-            return isLibrarian == 1;
-        }
+        private bool IsUserLibrarian() =>
+            HttpContext.Session.GetInt32(SessionData.SessionKeyIsLibrarian) == 1;
 
         // GET: Reservations
         public async Task<IActionResult> Index()
         {
-            if(!IsUserLoggedIn()|| !IsUserLibrarian()) {
+            if (!IsUserLoggedIn() || !IsUserLibrarian())
+            {
                 TempData["Error"] = "You do not have access to this page";
                 return RedirectToAction("Index", "Home");
             }
-            var libraryDbContext = _context.Reservations.Include(r => r.Book).Include(r => r.User).Where(r => r.ReservationEndDate > DateTime.Now);
-            return View(await libraryDbContext.ToListAsync());
+
+            var reservations = _context.Reservations
+                .Include(r => r.Book)
+                .Include(r => r.User)
+                .Where(r => r.ReservationEndDate > DateTime.Now);
+
+            return View(await reservations.ToListAsync());
         }
-        
-        public IActionResult Delete(int reservationId)
+
+        // GET: Delete Reservation
+        public async Task<IActionResult> Delete(int reservationId)
         {
-            var reservation = _context.Reservations.Include(r => r.Book)
-                .FirstOrDefault(r => r.ReservationId == reservationId);
+            var reservation = await _context.Reservations
+                .Include(r => r.Book)
+                .FirstOrDefaultAsync(r => r.ReservationId == reservationId);
 
             if (reservation == null)
             {
@@ -63,12 +63,14 @@ namespace LibraryManagementSystem.Controllers
             return View(reservation);
         }
 
+        // POST: Delete Reservation
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult DeleteConfirmed(int reservationId)
+        public async Task<IActionResult> DeleteConfirmed(int reservationId)
         {
+            var reservation = await _context.Reservations
+                .FirstOrDefaultAsync(r => r.ReservationId == reservationId);
 
-            var reservation = _context.Reservations.FirstOrDefault(r => r.ReservationId == reservationId);
             var userId = HttpContext.Session.GetInt32("UserId");
             if (userId == null || reservation == null || reservation.UserId != userId.Value)
             {
@@ -76,28 +78,26 @@ namespace LibraryManagementSystem.Controllers
                 return RedirectToAction("MyAccount", "Account");
             }
 
-            if (reservation != null)
-            {
-                _context.Reservations.Remove(reservation);
-                _context.SaveChanges();
-                TempData["Success"] = "Reservation canceled successfully.";
-            }
-            else
-            {
-                TempData["Error"] = "Reservation not found.";
-            }
+            _context.Reservations.Remove(reservation);
+            await _context.SaveChangesAsync();
 
+            TempData["Success"] = "Reservation canceled successfully.";
             return RedirectToAction("MyAccount", "Account");
         }
 
-        public IActionResult Lease(int reservationId)
+        // GET: Lease Reservation
+        public async Task<IActionResult> Lease(int reservationId)
         {
-            if(!IsUserLoggedIn()|| !IsUserLibrarian()) {
+            if (!IsUserLoggedIn() || !IsUserLibrarian())
+            {
                 TempData["Error"] = "You do not have access to this page";
                 return RedirectToAction("Index", "Home");
             }
-            var reservation = _context.Reservations.Include(r => r.User).Include(r => r.Book)
-                .FirstOrDefault(r => r.ReservationId == reservationId);
+
+            var reservation = await _context.Reservations
+                .Include(r => r.User)
+                .Include(r => r.Book)
+                .FirstOrDefaultAsync(r => r.ReservationId == reservationId);
 
             if (reservation == null || reservation.ReservationEndDate < DateTime.Now)
             {
@@ -108,27 +108,25 @@ namespace LibraryManagementSystem.Controllers
             return View(reservation);
         }
 
+        // POST: Lease Reservation
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult LeaseConfirmed(int reservationId)
+        public async Task<IActionResult> LeaseConfirmed(int reservationId)
         {
-
             if (!IsUserLoggedIn() || !IsUserLibrarian())
             {
                 TempData["Error"] = "You do not have access to this page.";
                 return RedirectToAction("Index", "Home");
             }
 
-            var reservation = _context.Reservations
-                .FirstOrDefault(r => r.ReservationId == reservationId);
+            var reservation = await _context.Reservations
+                .FirstOrDefaultAsync(r => r.ReservationId == reservationId);
 
             if (reservation == null)
             {
                 TempData["Error"] = "Reservation not found.";
                 return RedirectToAction(nameof(Index));
             }
-
-            
 
             var lease = new Lease
             {
@@ -137,17 +135,24 @@ namespace LibraryManagementSystem.Controllers
                 LeaseStartDate = DateTime.Now,
                 LeaseEndDate = null,
                 IsActive = true
-
             };
 
-            _context.Remove(reservation);
-            _context.Leases.Add(lease);
-            _context.SaveChanges();
-
-            TempData["Success"] = "Book successfully leased from reservation.";
+            try
+            {
+                _context.Reservations.Remove(reservation);
+                _context.Leases.Add(lease);
+                await _context.SaveChangesAsync();
+                TempData["Success"] = "Book successfully leased from reservation.";
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                TempData["Error"] = "The reservation was modified by another user. Please reload and try again.";
+                return RedirectToAction(nameof(Index));
+            }
             return RedirectToAction(nameof(Index));
         }
 
+        // GET: Reservation Details
         public async Task<IActionResult> Details(int? id)
         {
             if (!IsUserLoggedIn() || !IsUserLibrarian())
@@ -155,15 +160,17 @@ namespace LibraryManagementSystem.Controllers
                 TempData["Error"] = "You do not have access to this page";
                 return RedirectToAction("Index", "Home");
             }
-            if (id == null || _context.Reservations == null)
+
+            if (!id.HasValue)
             {
                 return NotFound();
             }
 
             var reservation = await _context.Reservations
-                .Include(l => l.Book)
-                .Include(l => l.User)
+                .Include(r => r.Book)
+                .Include(r => r.User)
                 .FirstOrDefaultAsync(m => m.ReservationId == id);
+
             if (reservation == null)
             {
                 return NotFound();
@@ -172,9 +179,7 @@ namespace LibraryManagementSystem.Controllers
             return View(reservation);
         }
 
-        private bool ReservationExists(int id)
-        {
-          return (_context.Reservations?.Any(e => e.ReservationId == id)).GetValueOrDefault();
-        }
+        private bool ReservationExists(int id) =>
+            _context.Reservations?.Any(e => e.ReservationId == id) ?? false;
     }
 }

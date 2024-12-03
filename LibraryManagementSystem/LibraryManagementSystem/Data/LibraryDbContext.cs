@@ -58,6 +58,11 @@ namespace LibraryManagementSystem.Data
                 entity.Property(e => e.Publisher)
                     .HasMaxLength(100)
                     .HasColumnName("publisher");
+
+                entity.Property(e => e.RowVersion)
+                    .IsRowVersion()
+                    .IsConcurrencyToken()
+                .HasColumnName("RowVersion").ValueGeneratedOnAddOrUpdate(); 
             });
 
             modelBuilder.Entity<Lease>(entity =>
@@ -126,6 +131,7 @@ namespace LibraryManagementSystem.Data
                     .HasForeignKey(d => d.UserId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("reservations_user_id_fkey");
+
             });
 
             modelBuilder.Entity<User>(entity =>

@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 public class ExpiredReservationCleaner : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
-    private readonly TimeSpan _interval = TimeSpan.FromMinutes(5);
+    private readonly TimeSpan _interval = TimeSpan.FromDays(1);
 
     public ExpiredReservationCleaner(IServiceProvider serviceProvider)
     {

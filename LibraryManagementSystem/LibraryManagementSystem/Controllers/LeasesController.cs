@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using LibraryManagementSystem.Data;
 using LibraryManagementSystem.Models;
@@ -18,17 +16,12 @@ namespace LibraryManagementSystem.Controllers
         {
             _context = context;
         }
-        private bool IsUserLoggedIn()
-        {
-            var userId = HttpContext.Session.GetInt32(SessionData.SessionKeyUserId);
-            return userId.HasValue;
-        }
 
-        private bool IsUserLibrarian()
-        {
-            var isLibrarian = HttpContext.Session.GetInt32(SessionData.SessionKeyIsLibrarian);
-            return isLibrarian == 1;
-        }
+        private bool IsUserLoggedIn() =>
+            HttpContext.Session.GetInt32(SessionData.SessionKeyUserId).HasValue;
+
+        private bool IsUserLibrarian() =>
+            HttpContext.Session.GetInt32(SessionData.SessionKeyIsLibrarian) == 1;
 
         public async Task<IActionResult> Index()
         {
@@ -37,8 +30,13 @@ namespace LibraryManagementSystem.Controllers
                 TempData["Error"] = "You do not have access to this page";
                 return RedirectToAction("Index", "Home");
             }
-            var libraryDbContext = _context.Leases.Include(l => l.Book).Include(l => l.User).Where(l => l.IsActive);
-            return View(await libraryDbContext.ToListAsync());
+
+            var leases = _context.Leases
+                .Include(l => l.Book)
+                .Include(l => l.User)
+                .Where(l => l.IsActive);
+
+            return View(await leases.ToListAsync());
         }
 
         public async Task<IActionResult> Details(int? id)
@@ -48,7 +46,8 @@ namespace LibraryManagementSystem.Controllers
                 TempData["Error"] = "You do not have access to this page";
                 return RedirectToAction("Index", "Home");
             }
-            if (id == null || _context.Leases == null)
+
+            if (!id.HasValue)
             {
                 return NotFound();
             }
@@ -56,7 +55,8 @@ namespace LibraryManagementSystem.Controllers
             var lease = await _context.Leases
                 .Include(l => l.Book)
                 .Include(l => l.User)
-                .FirstOrDefaultAsync(m => m.LeaseId == id);
+                .FirstOrDefaultAsync(m => m.LeaseId == id.Value);
+
             if (lease == null)
             {
                 return NotFound();
@@ -72,7 +72,8 @@ namespace LibraryManagementSystem.Controllers
                 TempData["Error"] = "You do not have access to this page";
                 return RedirectToAction("Index", "Home");
             }
-            if (id == null || _context.Leases == null)
+
+            if (!id.HasValue)
             {
                 return NotFound();
             }
@@ -80,7 +81,8 @@ namespace LibraryManagementSystem.Controllers
             var lease = await _context.Leases
                 .Include(l => l.Book)
                 .Include(l => l.User)
-                .FirstOrDefaultAsync(m => m.LeaseId == id);
+                .FirstOrDefaultAsync(m => m.LeaseId == id.Value);
+
             if (lease == null)
             {
                 return NotFound();
@@ -98,26 +100,31 @@ namespace LibraryManagementSystem.Controllers
                 TempData["Error"] = "You do not have access to this page";
                 return RedirectToAction("Index", "Home");
             }
-            if (_context.Leases == null)
-            {
-                return Problem("Entity set 'LibraryDbContext.Leases'  is null.");
-            }
+
             var lease = await _context.Leases.FindAsync(id);
             if (lease != null)
             {
-                lease.LeaseEndDate = DateTime.Now;
-                lease.IsActive = false;
-            }
-            
-            await _context.SaveChangesAsync();
+                try
+                {
+                    lease.LeaseEndDate = DateTime.Now;
+                    lease.IsActive = false;
 
-            TempData["Success"] = "Lease ended successfully!";
+                    _context.Update(lease);
+                    await _context.SaveChangesAsync();
+
+                    TempData["Success"] = "Lease ended successfully!";
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    TempData["Error"] = "The lease was modified by another user. Please reload and try again.";
+                    return RedirectToAction(nameof(Index));
+                }
+            }
+
             return RedirectToAction(nameof(Index));
         }
 
-        private bool LeaseExists(int id)
-        {
-          return (_context.Leases?.Any(e => e.LeaseId == id)).GetValueOrDefault();
-        }
+        private bool LeaseExists(int id) =>
+            _context.Leases?.Any(e => e.LeaseId == id) ?? false;
     }
 }

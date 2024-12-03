@@ -5,9 +5,9 @@ using LibraryManagementSystem.Data;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
-using System.Threading.Tasks;
 using System.Text;
 using Microsoft.AspNetCore.Identity;
+using System.Threading.Tasks;
 
 namespace LibraryManagementSystem.Controllers
 {
@@ -29,10 +29,10 @@ namespace LibraryManagementSystem.Controllers
         private bool IsUserLibrarian()
         {
             var isLibrarian = HttpContext.Session.GetInt32(SessionData.SessionKeyIsLibrarian);
-            return isLibrarian == 1; 
+            return isLibrarian == 1;
         }
 
-        string HashPassword(string password)
+        private string HashPassword(string password)
         {
             using (var sha256 = SHA256.Create())
             {
@@ -53,23 +53,21 @@ namespace LibraryManagementSystem.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(string Username, string password)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == Username);
-            if(user ==null || HashPassword(password) != user.Password)
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == Username).ConfigureAwait(false);
+            if (user == null || HashPassword(password) != user.Password)
             {
                 TempData["Error"] = "Invalid Credentials";
                 return RedirectToAction(nameof(Login));
             }
 
+            // Store session data in a thread-safe manner
             HttpContext.Session.SetInt32(SessionData.SessionKeyUserId, user.Id);
             HttpContext.Session.SetInt32(SessionData.SessionKeyIsLibrarian, user.IsLibrarian ? 1 : 0);
             HttpContext.Session.SetString(SessionData.SessionKeyUsername, user.Username);
 
-
             return RedirectToAction("Index", "Home");
         }
 
-
-        // GET: /Account/Register
         [HttpGet]
         public IActionResult Register()
         {
@@ -80,18 +78,29 @@ namespace LibraryManagementSystem.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register([Bind("Id,Username,FirstName,LastName,Password,Email,PhoneNumber,IsLibrarian")] User user)
         {
-            var detect_username_conflict = await _context.Users.FirstOrDefaultAsync(m => m.Username == user.Username);
+            var detect_username_conflict = await _context.Users.FirstOrDefaultAsync(m => m.Username == user.Username).ConfigureAwait(false);
 
             if (detect_username_conflict != null)
             {
                 TempData["Error"] = "Username already exists.";
                 return RedirectToAction(nameof(Register));
             }
-            if (ModelState.IsValid) {
+
+            if (ModelState.IsValid)
+            {
                 user.Password = HashPassword(user.Password);
                 user.IsLibrarian = false;
                 _context.Add(user);
-                await _context.SaveChangesAsync();
+                try
+                {
+                    await _context.SaveChangesAsync();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error: {ex.Message}");
+                    TempData["Error"] = "An error occurred while saving the user.";
+                    return View(user);
+                }
 
                 HttpContext.Session.SetInt32(SessionData.SessionKeyUserId, user.Id);
                 HttpContext.Session.SetInt32(SessionData.SessionKeyIsLibrarian, user.IsLibrarian ? 1 : 0);
@@ -99,13 +108,11 @@ namespace LibraryManagementSystem.Controllers
 
                 return RedirectToAction("Index", "Home");
             }
+            TempData["Error"] = "Missing Information";
 
-              
             return View(user);
-
         }
 
-        // POST: /Account/Logout
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Logout()
@@ -117,11 +124,9 @@ namespace LibraryManagementSystem.Controllers
 
             return RedirectToAction("Index", "Home");
         }
-        
 
         public IActionResult MyAccount()
         {
-
             if (!IsUserLoggedIn())
             {
                 TempData["Error"] = "You do not have access to this page";
@@ -154,7 +159,7 @@ namespace LibraryManagementSystem.Controllers
         }
 
         [HttpPost]
-        public IActionResult DeleteAccount()
+        public async Task<IActionResult> DeleteAccount()
         {
             var userId = HttpContext.Session.GetInt32("UserId");
             if (userId == null)
@@ -162,38 +167,34 @@ namespace LibraryManagementSystem.Controllers
                 TempData["Error"] = "You do not have access to this page";
                 return RedirectToAction("Index", "Home");
             }
-            
 
-            var user = _context.Users.FirstOrDefault(u => u.Id == userId.Value);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId.Value).ConfigureAwait(false);
             if (user == null)
             {
                 TempData["Error"] = "You do not have access to this page";
                 return RedirectToAction("Index", "Home");
             }
 
-            var leases = _context.Leases.Where(l => l.UserId == userId.Value && l.IsActive).ToList();
+            var leases = await _context.Leases.Where(l => l.UserId == userId.Value && l.IsActive).ToListAsync().ConfigureAwait(false);
             if (leases.Count != 0)
             {
                 TempData["Error"] = "You can't delete an account with active leases.";
                 return RedirectToAction(nameof(MyAccount));
             }
 
-            var reservations = _context.Reservations.Where(r => r.UserId == userId.Value).ToList();
-            var leases_history = _context.Leases.Where(l => l.UserId == userId.Value).ToList();
+            var reservations = await _context.Reservations.Where(r => r.UserId == userId.Value).ToListAsync().ConfigureAwait(false);
+            var leases_history = await _context.Leases.Where(l => l.UserId == userId.Value).ToListAsync().ConfigureAwait(false);
 
             _context.Leases.RemoveRange(leases_history);
             _context.Reservations.RemoveRange(reservations);
-
             _context.Users.Remove(user);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync().ConfigureAwait(false);
 
             HttpContext.Session.Clear();
 
             TempData["Success"] = "Account deleted successfully.";
             return RedirectToAction("Index", "Home");
         }
-
-    
 
         public IActionResult EditUser(int id)
         {
@@ -207,13 +208,11 @@ namespace LibraryManagementSystem.Controllers
             {
                 TempData["Error"] = "User not found.";
                 return RedirectToAction("Index");
-
             }
             user.Password = null;
 
             return View(user);
         }
-
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -227,19 +226,19 @@ namespace LibraryManagementSystem.Controllers
             if (ModelState.IsValid)
             {
 
-                    if (!string.IsNullOrEmpty(user.Password))
-                    {
-                        var hashedPassword = HashPassword(user.Password);
-                        user.Password = hashedPassword;
-                    }
-
-                    _context.Update(user);
-                    _context.SaveChanges();
-
-                    TempData["Success"] = "User updated successfully!";
-                    return RedirectToAction("Index"); 
+                if (!string.IsNullOrEmpty(user.Password))
+                {
+                    var hashedPassword = HashPassword(user.Password);
+                    user.Password = hashedPassword;
                 }
-            
+
+                _context.Update(user);
+                _context.SaveChanges();
+
+                TempData["Success"] = "User updated successfully!";
+                return RedirectToAction("Index");
+            }
+
             return View(user);
         }
 
@@ -250,15 +249,10 @@ namespace LibraryManagementSystem.Controllers
                 TempData["Error"] = "You do not have access to this page";
                 return RedirectToAction("Index", "Home");
             }
-            var users = _context.Users.Where(u => u.IsLibrarian == false).ToList(); 
-            return View(users); 
+            var users = _context.Users.Where(u => u.IsLibrarian == false).ToList();
+            return View(users);
         }
 
-    }
-}
-
     
-
-
-
-
+}
+}

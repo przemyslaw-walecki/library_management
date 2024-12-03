@@ -12,6 +12,7 @@
         <form asp-action="EditBook">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <input type="hidden" asp-for="BookId" />
+            <input type="hidden" asp-for="RowVersion" />
             <input type="hidden" asp-for="IsPermanentlyUnavailable" />
             <div class="form-group">
                 <label asp-for="Name" class="control-label"></label>
