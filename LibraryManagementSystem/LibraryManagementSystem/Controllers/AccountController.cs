@@ -196,27 +196,26 @@ namespace LibraryManagementSystem.Controllers
             return RedirectToAction("Index", "Home");
         }
 
-        public IActionResult EditUser(int id)
+        public async Task<IActionResult> EditUser(int id)
         {
             if (!IsUserLoggedIn() || !IsUserLibrarian())
             {
                 TempData["Error"] = "You do not have access to this page";
                 return RedirectToAction("Index", "Home");
             }
-            var user = _context.Users.FirstOrDefault(u => u.Id == id);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
             if (user == null)
             {
                 TempData["Error"] = "User not found.";
                 return RedirectToAction("Index");
             }
-            user.Password = null;
 
             return View(user);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult EditUser(User user)
+        public async Task<IActionResult> EditUser(User user)
         {
             if (!IsUserLoggedIn() || !IsUserLibrarian())
             {
@@ -225,20 +224,44 @@ namespace LibraryManagementSystem.Controllers
             }
             if (ModelState.IsValid)
             {
-
-                if (!string.IsNullOrEmpty(user.Password))
+                try
                 {
-                    var hashedPassword = HashPassword(user.Password);
-                    user.Password = hashedPassword;
+                    var existingUser = await _context.Users
+                        .FirstOrDefaultAsync(u => u.Id == user.Id);
+
+                    if (existingUser == null)
+                    {
+                        TempData["Error"] = "User not found.";
+                        return RedirectToAction("ManageUsers");
+                    }
+
+                    existingUser.Email = user.Email;
+                    existingUser.PhoneNumber = user.PhoneNumber;
+
+
+                    _context.Entry(existingUser).Property(u => u.Version).OriginalValue = user.Version;
+
+                    await _context.SaveChangesAsync();
+
+                    TempData["Success"] = "User updated successfully.";
+                    return RedirectToAction("ManageUsers");
                 }
-
-                _context.Update(user);
-                _context.SaveChanges();
-
-                TempData["Success"] = "User updated successfully!";
-                return RedirectToAction("Index");
+                catch (DbUpdateConcurrencyException)
+                {
+                    TempData["Error"] = "The User data was modified by another user. Please reload and try again.";
+                    return RedirectToAction("ManageUsers");
+                }
             }
 
+            foreach (var state in ModelState)
+            {
+                foreach (var error in state.Value.Errors)
+                {
+                    Console.WriteLine($"Field: {state.Key}, Error: {error.ErrorMessage}");
+                }
+            }
+
+            TempData["Error"] = "Invalid/Missing User information.";
             return View(user);
         }
 

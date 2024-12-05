@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using NuGet.Configuration;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -48,5 +49,10 @@ namespace LibraryManagementSystem.Models
 
         public virtual ICollection<Lease> Leases { get; set; }
         public virtual ICollection<Reservation> Reservations { get; set; }
+
+        [Timestamp]
+        [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
+        [Column("xmin", TypeName = "xid")]
+        public uint Version { get; set; }
     }
 }

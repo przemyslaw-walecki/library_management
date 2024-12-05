@@ -174,6 +174,9 @@ namespace LibraryManagementSystem.Data
                 entity.Property(e => e.Username)
                     .HasMaxLength(50)
                     .HasColumnName("username");
+
+                entity.Property(e => e.Version)
+                .HasColumnName("xmin").HasColumnType("xid").ValueGeneratedOnAddOrUpdate().IsConcurrencyToken();
             });
 
             OnModelCreatingPartial(modelBuilder);

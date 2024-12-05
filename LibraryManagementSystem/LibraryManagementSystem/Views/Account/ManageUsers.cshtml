@@ -4,6 +4,22 @@
     ViewData["Title"] = "ManageUsers";
 }
 
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">
+        @TempData["Success"]
+    </div>
+    TempData["Success"] = null;
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">
+        @TempData["Error"]
+    </div>
+    TempData["Error"] = null;
+}
+
 <h1>ListUsers</h1>
 
 <table class="table">
