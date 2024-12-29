@@ -12,7 +12,8 @@ const LoginPage: React.FC = () => {
 
     try {
       await login(username, password);
-      navigate('/books');  // Redirect to books listing page
+      const role = localStorage.getItem('role');
+      role === 'Librarian' ? navigate('/manage-books') : navigate('/books');
     } catch (error) {
       console.error('Login failed', error);
       alert('Login failed');

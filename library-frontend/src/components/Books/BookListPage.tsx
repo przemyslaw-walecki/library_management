@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { fetchBooks } from '../../services/api';
+import { fetchBooks, reserveBook } from '../../services/api';
 
 const BookListPage: React.FC = () => {
   const [books, setBooks] = useState<any[]>([]);
   const [searchString, setSearchString] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  const token = true;
 
   useEffect(() => {
     const loadBooks = async () => {
@@ -21,6 +19,21 @@ const BookListPage: React.FC = () => {
 
     loadBooks();
   }, [searchString]);
+
+  const handleReserve = async (bookId: number) => {
+    try {
+      await reserveBook(bookId);
+      setMessage('Book reserved successfully!');
+      setErrorMessage(null);
+
+      const data = await fetchBooks(searchString);
+      setBooks(data.$values);
+    } catch (error) {
+      console.error('Failed to reserve book', error);
+      setMessage(null);
+      alert(error instanceof Error ? error.message : 'An error occurred');
+    }
+  };
 
   return (
     <div>
@@ -54,21 +67,17 @@ const BookListPage: React.FC = () => {
           <p>{new Date(book.dateOfPublication).toLocaleDateString()}</p>
           <p>{book.price}</p>
 
-          {token ? (
-            book.isReserved ? (
-              <span className="text-danger">Reserved</span>
-            ) : book.isLeased ? (
-              <span className="text-danger">Leased</span>
-            ) : (
-              <form method="post" action="/api/books/reserve">
-                <input type="hidden" name="bookId" value={book.bookId.toString()} />
-                <button type="submit" className="btn btn-success">
-                  Reserve
-                </button>
-              </form>
-            )
+          {book.isReserved ? (
+            <span className="text-danger">Reserved</span>
+          ) : book.isLeased ? (
+            <span className="text-danger">Leased</span>
           ) : (
-            <p>Login to reserve this book.</p>
+            <button
+              className="btn btn-success"
+              onClick={() => handleReserve(book.bookId)}
+            >
+              Reserve
+            </button>
           )}
         </div>
       ))}
