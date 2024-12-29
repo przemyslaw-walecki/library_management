@@ -35,7 +35,7 @@ namespace LibraryManagementSystem.Controllers
                     new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                     new Claim(ClaimTypes.Role, user.IsLibrarian ? "Librarian" : "User")
                 }),
-                Expires = DateTime.UtcNow.AddHours(1),
+                Expires = DateTime.UtcNow.AddMinutes(10),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
 
@@ -95,10 +95,10 @@ namespace LibraryManagementSystem.Controllers
                 HttpOnly = true,
                 Secure = true,
                 SameSite = SameSiteMode.Strict,
-                Expires = DateTime.UtcNow.AddHours(1)
+                Expires = DateTime.UtcNow.AddMinutes(10)
             });
 
-            return Ok(new { token });
+            return Ok("Login successfull");
         }
 
         [HttpPost("register")]
@@ -123,6 +123,7 @@ namespace LibraryManagementSystem.Controllers
                 }
                 catch (Exception ex)
                 {
+                    Console.WriteLine(ex.ToString());
                     return StatusCode(500, new { message = "An error occurred while saving the user." });
                 }
 

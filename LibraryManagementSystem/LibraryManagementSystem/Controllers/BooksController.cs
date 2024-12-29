@@ -1,9 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using LibraryManagementSystem.Models;
-using Microsoft.AspNetCore.Authorization;
 using LibraryManagementSystem.Data;
 using Microsoft.EntityFrameworkCore;
-
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 namespace LibraryManagementSystem.Controllers
 {
@@ -12,11 +15,44 @@ namespace LibraryManagementSystem.Controllers
     public class BooksController : ControllerBase
     {
         private readonly LibraryDbContext _context;
+        private readonly IConfiguration _configuration;
 
-        public BooksController(LibraryDbContext context)
+        public BooksController(LibraryDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
+
+        private int? GetUserIdFromJwt()
+        {
+            if (Request.Cookies.TryGetValue("AuthToken", out var token))
+            {
+                var tokenHandler = new JwtSecurityTokenHandler();
+                var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"]);
+
+                try
+                {
+                    var claimsPrincipal = tokenHandler.ValidateToken(token, new TokenValidationParameters
+                    {
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = new SymmetricSecurityKey(key),
+                        ValidateIssuer = false,
+                        ValidateAudience = false,
+                        ClockSkew = TimeSpan.Zero
+                    }, out _);
+
+                    var userIdClaim = claimsPrincipal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    return int.TryParse(userIdClaim, out var userId) ? userId : null;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.ToString());
+                    return null;
+                }
+            }
+            return null;
+        }
+
 
         // GET: api/books
         [HttpGet]
@@ -31,28 +67,33 @@ namespace LibraryManagementSystem.Controllers
                                          (b.Publisher != null && b.Publisher.Contains(searchString)) && b.IsPermanentlyUnavailable == false);
             }
 
-            var bookList = await books.ToListAsync();
+            var bookList = await books
+                        .Include(b => b.Leases)
+                        .Include(b => b.Reservations)
+                        .ToListAsync();
 
-            foreach (var book in bookList)
+            var bookDtos = books.Select(b => new BookListDTO
             {
-                var activeReservation = await _context.Reservations
-                    .FirstOrDefaultAsync(r => r.BookId == book.BookId && r.ReservationEndDate > DateTime.Now);
+                BookId = b.BookId,
+                Author = b.Author,
+                Publisher = b.Publisher,
+                DateOfPublication = b.DateOfPublication,
+                Price = b.Price,
+                IsPermanentlyUnavailable = b.IsPermanentlyUnavailable,
+                Name = b.Name,
+                IsLeased = b.IsLeased,
+                IsReserved = b.IsReserved
+            }).ToList();
 
-                var activeLease = await _context.Leases
-                    .FirstOrDefaultAsync(l => l.BookId == book.BookId && l.LeaseEndDate == null);
-
-                book.IsReserved = activeReservation != null;
-                book.IsLeased = activeLease != null;
-            }
-
-            return Ok(bookList);
+            return Ok(bookDtos);
         }
 
+        // POST: api/books/reserve
         [HttpPost("reserve")]
+        [Authorize(Roles = "User")]
         public async Task<IActionResult> ReserveBook([FromBody] int bookId)
         {
-            var userId = HttpContext.User?.Claims?.FirstOrDefault(c => c.Type == "userId")?.Value;
-
+            var userId = GetUserIdFromJwt();
             if (userId == null)
             {
                 return Unauthorized("You must be logged in to reserve a book.");
@@ -77,7 +118,7 @@ namespace LibraryManagementSystem.Controllers
             var newReservation = new Reservation
             {
                 BookId = bookId,
-                UserId = int.Parse(userId),  // Assuming userId is stored as a claim
+                UserId = userId.Value,
                 ReservationDate = DateTime.Now,
                 ReservationEndDate = DateTime.Now.Date.AddDays(2).AddSeconds(-1)
             };
@@ -116,13 +157,8 @@ namespace LibraryManagementSystem.Controllers
         // PUT: api/books/edit/{id}
         [HttpPut("edit/{id}")]
         [Authorize(Roles = "Librarian")]
-        public async Task<IActionResult> EditBook(int id, [FromBody] Book book)
+        public async Task<IActionResult> EditBook(int id, [FromBody] BookEditDto book)
         {
-            if (id != book.BookId)
-            {
-                return BadRequest("Book ID mismatch.");
-            }
-
             var existingBook = await _context.Books.FindAsync(id);
 
             if (existingBook == null)
@@ -134,7 +170,6 @@ namespace LibraryManagementSystem.Controllers
             existingBook.Publisher = book.Publisher;
             existingBook.DateOfPublication = book.DateOfPublication;
             existingBook.Price = book.Price;
-            existingBook.IsPermanentlyUnavailable = book.IsPermanentlyUnavailable;
             existingBook.Name = book.Name;
 
             await _context.SaveChangesAsync();

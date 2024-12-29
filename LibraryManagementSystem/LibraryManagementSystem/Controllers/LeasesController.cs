@@ -20,22 +20,13 @@ namespace LibraryManagementSystem.Controllers
             _context = context;
         }
 
-        private bool IsUserLoggedIn() =>
-            HttpContext.User.Identity.IsAuthenticated;
 
-        private bool IsUserLibrarian() =>
-            HttpContext.User.IsInRole("Librarian");
 
         // GET: api/leases
         [HttpGet]
-        [Authorize]
+        [Authorize(Roles = "Librarian")]
         public async Task<ActionResult> GetLeases()
         {
-            if (!IsUserLoggedIn() || !IsUserLibrarian())
-            {
-                return Unauthorized("You do not have access to this page");
-            }
-
             var leases = await _context.Leases
                 .Include(l => l.Book)
                 .Include(l => l.User)
@@ -47,13 +38,9 @@ namespace LibraryManagementSystem.Controllers
 
         // GET: api/leases/5
         [HttpGet("{id}")]
-        [Authorize]
+        [Authorize(Roles = "Librarian")]
         public async Task<ActionResult> GetLease(int id)
         {
-            if (!IsUserLoggedIn() || !IsUserLibrarian())
-            {
-                return Unauthorized("You do not have access to this page");
-            }
 
             var lease = await _context.Leases
                 .Include(l => l.Book)
@@ -70,14 +57,9 @@ namespace LibraryManagementSystem.Controllers
 
         // PUT: api/leases/5/end
         [HttpPut("{id}/end")]
-        [Authorize]
+        [Authorize(Roles = "Librarian")]
         public async Task<ActionResult> EndLease(int id)
         {
-            if (!IsUserLoggedIn() || !IsUserLibrarian())
-            {
-                return Unauthorized("You do not have access to this page");
-            }
-
             var lease = await _context.Leases
                 .FirstOrDefaultAsync(m => m.LeaseId == id);
 
@@ -102,7 +84,5 @@ namespace LibraryManagementSystem.Controllers
             return Ok("Lease ended successfully!");
         }
 
-        private bool LeaseExists(int id) =>
-            _context.Leases?.Any(e => e.LeaseId == id) ?? false;
     }
 }

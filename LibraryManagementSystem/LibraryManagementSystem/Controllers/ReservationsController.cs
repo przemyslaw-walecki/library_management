@@ -6,6 +6,10 @@ using Microsoft.EntityFrameworkCore;
 using LibraryManagementSystem.Data;
 using LibraryManagementSystem.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 namespace LibraryManagementSystem.Controllers
 {
@@ -13,25 +17,51 @@ namespace LibraryManagementSystem.Controllers
     [ApiController]
     public class ReservationsController : ControllerBase
     {
-        private readonly LibraryDbContext _context;
-
-        public ReservationsController(LibraryDbContext context)
+        private int? GetUserIdFromJwt()
         {
-            _context = context;
+            if (Request.Cookies.TryGetValue("AuthToken", out var token))
+            {
+                var tokenHandler = new JwtSecurityTokenHandler();
+                var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"]);
+
+                try
+                {
+                    var claimsPrincipal = tokenHandler.ValidateToken(token, new TokenValidationParameters
+                    {
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = new SymmetricSecurityKey(key),
+                        ValidateIssuer = false,
+                        ValidateAudience = false,
+                        ClockSkew = TimeSpan.Zero
+                    }, out _);
+
+                    var userIdClaim = claimsPrincipal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    return int.TryParse(userIdClaim, out var userId) ? userId : null;
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.ToString());
+                    return null;
+                }
+            }
+            return null;
         }
 
-        private bool IsUserLibrarian() =>
-            HttpContext.User.IsInRole("Librarian");
+        private readonly LibraryDbContext _context;
+        private readonly IConfiguration _configuration;
+
+        public ReservationsController(LibraryDbContext context, IConfiguration configuration)
+        {
+            _context = context;
+            _configuration = configuration;
+        }
+
 
         // GET: api/reservations
         [HttpGet]
-        [Authorize]
+        [Authorize(Roles = "Librarian")]
         public async Task<ActionResult> GetReservations()
         {
-            if (!HttpContext.User.Identity.IsAuthenticated || !IsUserLibrarian())
-            {
-                return Unauthorized("You do not have access to this page.");
-            }
 
             var reservations = await _context.Reservations
                 .Include(r => r.Book)
@@ -47,11 +77,6 @@ namespace LibraryManagementSystem.Controllers
         [Authorize]
         public async Task<ActionResult> GetReservation(int id)
         {
-            if (!HttpContext.User.Identity.IsAuthenticated || !IsUserLibrarian())
-            {
-                return Unauthorized("You do not have access to this page.");
-            }
-
             var reservation = await _context.Reservations
                 .Include(r => r.Book)
                 .Include(r => r.User)
@@ -67,7 +92,7 @@ namespace LibraryManagementSystem.Controllers
 
         // DELETE: api/reservations/{id}
         [HttpDelete("{id}")]
-        [Authorize]
+        [Authorize(Roles = "User")]
         public async Task<ActionResult> DeleteReservation(int id)
         {
             var reservation = await _context.Reservations
@@ -78,7 +103,7 @@ namespace LibraryManagementSystem.Controllers
                 return NotFound();
             }
 
-            var userId = Convert.ToInt32(HttpContext.User.Claims.FirstOrDefault(c => c.Type == "UserId")?.Value);
+            var userId = GetUserIdFromJwt();
             if (reservation.UserId != userId)
             {
                 return Unauthorized("You can only cancel your own reservations.");
@@ -92,13 +117,9 @@ namespace LibraryManagementSystem.Controllers
 
         // PUT: api/reservations/{id}/lease
         [HttpPut("{id}/lease")]
-        [Authorize]
+        [Authorize(Roles = "Librarian")]
         public async Task<ActionResult> LeaseReservation(int id)
         {
-            if (!HttpContext.User.Identity.IsAuthenticated || !IsUserLibrarian())
-            {
-                return Unauthorized("You do not have access to this page.");
-            }
 
             var reservation = await _context.Reservations
                 .Include(r => r.User)
@@ -119,20 +140,11 @@ namespace LibraryManagementSystem.Controllers
                 IsActive = true
             };
 
-            try
-            {
                 _context.Reservations.Remove(reservation);
                 _context.Leases.Add(lease);
                 await _context.SaveChangesAsync();
                 return Ok("Book successfully leased from reservation.");
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                return Conflict("The reservation was modified by another user. Please reload and try again.");
-            }
+            
         }
-
-        private bool ReservationExists(int id) =>
-            _context.Reservations?.Any(e => e.ReservationId == id) ?? false;
     }
 }

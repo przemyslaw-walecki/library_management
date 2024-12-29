@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace LibraryManagementSystem
 {
@@ -23,7 +24,7 @@ namespace LibraryManagementSystem
             {
                 options.Cookie.HttpOnly = true;
                 options.Cookie.SameSite = SameSiteMode.Strict;
-                options.Cookie.Name = "AuthToken";
+                options.Cookie.Name = ".LibraryManagementSystem.Session";
                 options.IdleTimeout = TimeSpan.FromMinutes(10);
             });
 
@@ -40,20 +41,29 @@ namespace LibraryManagementSystem
 
             SwaggerService.AddSwagger(builder.Services);
 
-            builder.Services.AddAuthentication("Bearer")
+            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
                 {
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
-                        ValidateIssuer = true,
-                        ValidateAudience = true,
+                        ValidateIssuer = false,
+                        ValidateAudience = false,
                         ValidateLifetime = true,
                         ValidateIssuerSigningKey = true,
-                        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-                        ValidAudience = builder.Configuration["Jwt:Audience"],
                         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
                     };
-                });
+                    options.Events = new JwtBearerEvents
+                    {
+                        OnMessageReceived = context =>
+                        {
+                            if (context.Request.Cookies.TryGetValue("AuthToken", out var token))
+                            {
+                                context.Token = token;
+                            }
+                            return Task.CompletedTask;
+                        }
+                    };
+        });
 
             builder.Services.AddAuthorization();
 
@@ -86,9 +96,11 @@ namespace LibraryManagementSystem
 
             app.UseStaticFiles();
             app.UseRouting();
-            app.UseAuthorization();
 
+            app.UseAuthentication();
             app.UseSession();
+            app.UseAuthorization();
+         
             app.MapControllers();
 
             app.Run();
