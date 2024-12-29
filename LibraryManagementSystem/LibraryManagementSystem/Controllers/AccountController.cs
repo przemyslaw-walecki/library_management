@@ -1,35 +1,73 @@
 ﻿using LibraryManagementSystem.Models;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using LibraryManagementSystem.Data;
-using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using Microsoft.AspNetCore.Identity;
-using System.Threading.Tasks;
 
 namespace LibraryManagementSystem.Controllers
 {
-    public class AccountController : Controller
+    [ApiController]
+    [Route("api/[controller]")]
+    public class AccountController : ControllerBase
     {
         private readonly LibraryDbContext _context;
+        private readonly IConfiguration _configuration;
 
-        public AccountController(LibraryDbContext context)
+        public AccountController(LibraryDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
 
-        private bool IsUserLoggedIn()
+        private string GenerateJwtToken(User user)
         {
-            var userId = HttpContext.Session.GetInt32(SessionData.SessionKeyUserId);
-            return userId.HasValue;
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"]);
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(new[]
+                {
+                    new Claim(ClaimTypes.Name, user.Username),
+                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                    new Claim(ClaimTypes.Role, user.IsLibrarian ? "Librarian" : "User")
+                }),
+                Expires = DateTime.UtcNow.AddHours(1),
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+            };
+
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            return tokenHandler.WriteToken(token);
         }
 
-        private bool IsUserLibrarian()
+        private int? GetUserIdFromJwt()
         {
-            var isLibrarian = HttpContext.Session.GetInt32(SessionData.SessionKeyIsLibrarian);
-            return isLibrarian == 1;
+            if (Request.Cookies.TryGetValue("AuthToken", out var token))
+            {
+                var tokenHandler = new JwtSecurityTokenHandler();
+                var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"]);
+                try
+                {
+                    var claims = tokenHandler.ValidateToken(token, new TokenValidationParameters
+                    {
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = new SymmetricSecurityKey(key),
+                        ValidateIssuer = false,
+                        ValidateAudience = false
+                    }, out _);
+
+                    var userIdClaim = claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                    return int.TryParse(userIdClaim, out var userId) ? userId : null;
+                }
+                catch
+                {
+                    return null;
+                }
+            }
+            return null;
         }
 
         private string HashPassword(string password)
@@ -42,54 +80,42 @@ namespace LibraryManagementSystem.Controllers
             }
         }
 
-        // GET: /Account/Login
-        [HttpGet]
-        public IActionResult Login()
-        {
-            return View(new User());
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
+        [HttpPost("login")]
         public async Task<IActionResult> Login(string Username, string password)
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == Username).ConfigureAwait(false);
             if (user == null || HashPassword(password) != user.Password)
             {
-                TempData["Error"] = "Invalid Credentials";
-                return RedirectToAction(nameof(Login));
+                return Unauthorized(new { message = "Invalid credentials." });
             }
 
-            // Store session data in a thread-safe manner
-            HttpContext.Session.SetInt32(SessionData.SessionKeyUserId, user.Id);
-            HttpContext.Session.SetInt32(SessionData.SessionKeyIsLibrarian, user.IsLibrarian ? 1 : 0);
-            HttpContext.Session.SetString(SessionData.SessionKeyUsername, user.Username);
-
-            return RedirectToAction("Index", "Home");
-        }
-
-        [HttpGet]
-        public IActionResult Register()
-        {
-            return View(new User());
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Register([Bind("Id,Username,FirstName,LastName,Password,Email,PhoneNumber,IsLibrarian")] User user)
-        {
-            var detect_username_conflict = await _context.Users.FirstOrDefaultAsync(m => m.Username == user.Username).ConfigureAwait(false);
-
-            if (detect_username_conflict != null)
+            var token = GenerateJwtToken(user);
+            Response.Cookies.Append("AuthToken", token, new CookieOptions
             {
-                TempData["Error"] = "Username already exists.";
-                return RedirectToAction(nameof(Register));
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Expires = DateTime.UtcNow.AddHours(1)
+            });
+
+            return Ok(new { token });
+        }
+
+        [HttpPost("register")]
+        public async Task<IActionResult> Register([FromBody] User user)
+        {
+            var detectUsernameConflict = await _context.Users.FirstOrDefaultAsync(u => u.Username == user.Username).ConfigureAwait(false);
+
+            if (detectUsernameConflict != null)
+            {
+                return Conflict(new { message = "Username already exists." });
             }
 
             if (ModelState.IsValid)
             {
                 user.Password = HashPassword(user.Password);
                 user.IsLibrarian = false;
+
                 _context.Add(user);
                 try
                 {
@@ -97,162 +123,53 @@ namespace LibraryManagementSystem.Controllers
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error: {ex.Message}");
-                    TempData["Error"] = "An error occurred while saving the user.";
-                    return View(user);
+                    return StatusCode(500, new { message = "An error occurred while saving the user." });
                 }
 
-                HttpContext.Session.SetInt32(SessionData.SessionKeyUserId, user.Id);
-                HttpContext.Session.SetInt32(SessionData.SessionKeyIsLibrarian, user.IsLibrarian ? 1 : 0);
-                HttpContext.Session.SetString(SessionData.SessionKeyUsername, user.Username);
+                var token = GenerateJwtToken(user);
+                Response.Cookies.Append("AuthToken", token, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Strict,
+                    Expires = DateTime.UtcNow.AddHours(1)
+                });
 
-                return RedirectToAction("Index", "Home");
+                return Ok(new { message = "Registration successful." });
             }
-            TempData["Error"] = "Missing Information";
 
-            return View(user);
+            return BadRequest(new { message = "Invalid user data." });
         }
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
+        [HttpPost("logout")]
         public IActionResult Logout()
         {
-            HttpContext.Session.Remove(SessionData.SessionKeyUserId);
-            HttpContext.Session.Remove(SessionData.SessionKeyIsLibrarian);
-            HttpContext.Session.Remove(SessionData.SessionKeyUsername);
-            Response.Cookies.Delete(".AspNetCore.Session");
-
-            return RedirectToAction("Index", "Home");
+            Response.Cookies.Delete("AuthToken");
+            return Ok(new { message = "Logout successful." });
         }
 
-        public IActionResult MyAccount()
+        [HttpGet("myaccount")]
+        public async Task<IActionResult> MyAccount()
         {
-            if (!IsUserLoggedIn())
-            {
-                TempData["Error"] = "You do not have access to this page";
-                return RedirectToAction("Index", "Home");
-            }
-
-            var userId = HttpContext.Session.GetInt32("UserId");
+            var userId = GetUserIdFromJwt();
             if (userId == null)
             {
-                return RedirectToAction("Login", "Account");
+                return Unauthorized(new { message = "You are not logged in." });
             }
 
-            var isLibrarian = HttpContext.Session.GetInt32(SessionData.SessionKeyIsLibrarian) == 1;
-
-            ViewBag.IsLibrarian = isLibrarian;
-
-            var user = _context.Users
+            var user = await _context.Users
                 .Include(u => u.Reservations)
                 .ThenInclude(r => r.Book)
                 .Include(u => u.Leases)
-                .ThenInclude(r => r.Book)
-                .FirstOrDefault(u => u.Id == userId);
+                .ThenInclude(l => l.Book)
+                .FirstOrDefaultAsync(u => u.Id == userId.Value).ConfigureAwait(false);
 
             if (user == null)
             {
-                return RedirectToAction("Login", "Account");
+                return NotFound(new { message = "User not found." });
             }
 
-            return View(user);
+            return Ok(user);
         }
-
-        [HttpPost]
-        public async Task<IActionResult> DeleteAccount()
-        {
-            var userId = HttpContext.Session.GetInt32("UserId");
-            if (userId == null)
-            {
-                TempData["Error"] = "You do not have access to this page";
-                return RedirectToAction("Index", "Home");
-            }
-
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId.Value).ConfigureAwait(false);
-            if (user == null)
-            {
-                TempData["Error"] = "You do not have access to this page";
-                return RedirectToAction("Index", "Home");
-            }
-
-            var leases = await _context.Leases.Where(l => l.UserId == userId.Value && l.IsActive).ToListAsync().ConfigureAwait(false);
-            if (leases.Count != 0)
-            {
-                TempData["Error"] = "You can't delete an account with active leases.";
-                return RedirectToAction(nameof(MyAccount));
-            }
-
-            var reservations = await _context.Reservations.Where(r => r.UserId == userId.Value).ToListAsync().ConfigureAwait(false);
-            var leases_history = await _context.Leases.Where(l => l.UserId == userId.Value).ToListAsync().ConfigureAwait(false);
-
-            _context.Leases.RemoveRange(leases_history);
-            _context.Reservations.RemoveRange(reservations);
-            _context.Users.Remove(user);
-            await _context.SaveChangesAsync().ConfigureAwait(false);
-
-            HttpContext.Session.Clear();
-
-            TempData["Success"] = "Account deleted successfully.";
-            return RedirectToAction("Index", "Home");
-        }
-
-        public IActionResult EditUser(int id)
-        {
-            if (!IsUserLoggedIn() || !IsUserLibrarian())
-            {
-                TempData["Error"] = "You do not have access to this page";
-                return RedirectToAction("Index", "Home");
-            }
-            var user = _context.Users.FirstOrDefault(u => u.Id == id);
-            if (user == null)
-            {
-                TempData["Error"] = "User not found.";
-                return RedirectToAction("Index");
-            }
-            user.Password = null;
-
-            return View(user);
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult EditUser(User user)
-        {
-            if (!IsUserLoggedIn() || !IsUserLibrarian())
-            {
-                TempData["Error"] = "You do not have access to this page";
-                return RedirectToAction("Index", "Home");
-            }
-            if (ModelState.IsValid)
-            {
-
-                if (!string.IsNullOrEmpty(user.Password))
-                {
-                    var hashedPassword = HashPassword(user.Password);
-                    user.Password = hashedPassword;
-                }
-
-                _context.Update(user);
-                _context.SaveChanges();
-
-                TempData["Success"] = "User updated successfully!";
-                return RedirectToAction("Index");
-            }
-
-            return View(user);
-        }
-
-        public IActionResult ManageUsers()
-        {
-            if (!IsUserLoggedIn() || !IsUserLibrarian())
-            {
-                TempData["Error"] = "You do not have access to this page";
-                return RedirectToAction("Index", "Home");
-            }
-            var users = _context.Users.Where(u => u.IsLibrarian == false).ToList();
-            return View(users);
-        }
-
-    
-}
+    }
 }

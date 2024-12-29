@@ -1,7 +1,9 @@
 using LibraryManagementSystem.Data;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
+using LibraryManagementSystem.Services;
 using Microsoft.EntityFrameworkCore;
-using System.Globalization;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using System.Text;
 
 namespace LibraryManagementSystem
 {
@@ -19,16 +21,50 @@ namespace LibraryManagementSystem
             builder.Services.AddDistributedMemoryCache();
             builder.Services.AddSession(options =>
             {
-                options.IdleTimeout = TimeSpan.FromMinutes(30);
                 options.Cookie.HttpOnly = true;
-                options.Cookie.IsEssential = true;
+                options.Cookie.SameSite = SameSiteMode.Strict;
+                options.Cookie.Name = "AuthToken";
+                options.IdleTimeout = TimeSpan.FromMinutes(10);
             });
 
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
             builder.Services.AddHostedService<ExpiredReservationCleaner>();
 
-            builder.Services.AddControllersWithViews();
+            builder.Services.AddControllers()
+            .AddJsonOptions(options =>
+            {
+                options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
+            });
+            builder.Services.AddEndpointsApiExplorer();
+
+            SwaggerService.AddSwagger(builder.Services);
+
+            builder.Services.AddAuthentication("Bearer")
+                .AddJwtBearer(options =>
+                {
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+                        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                        ValidAudience = builder.Configuration["Jwt:Audience"],
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+                    };
+                });
+
+            builder.Services.AddAuthorization();
+
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowReactApp",
+                    policy => policy.WithOrigins("http://localhost:3000", "http://localhost:7276")
+                                    .AllowAnyMethod()
+                                    .AllowAnyHeader());
+            });
+
 
             AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
             
@@ -40,9 +76,12 @@ namespace LibraryManagementSystem
             }
             else
             {
-                app.UseExceptionHandler("/Home/Error");
                 app.UseHsts();
             }
+
+            app.UseCors("AllowReactApp");
+
+            SwaggerService.UseSwagger(app);
 
             app.UseHttpsRedirection();
             app.UseStaticFiles();
@@ -50,11 +89,7 @@ namespace LibraryManagementSystem
             app.UseAuthorization();
 
             app.UseSession();
-
-
-            app.MapControllerRoute(
-                name: "default",
-                pattern: "{controller=Home}/{action=Index}/{id?}");
+            app.MapControllers();
 
             app.Run();
         }

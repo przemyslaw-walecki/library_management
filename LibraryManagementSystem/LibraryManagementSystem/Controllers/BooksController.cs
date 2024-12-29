@@ -1,14 +1,15 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using LibraryManagementSystem.Models;
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
 using LibraryManagementSystem.Data;
 using Microsoft.EntityFrameworkCore;
-using System.Threading.Tasks;
-using System.Linq;
 
-namespace YourProject.Controllers
+
+namespace LibraryManagementSystem.Controllers
 {
-    public class BooksController : Controller
+    [Route("api/[controller]")]
+    [ApiController]
+    public class BooksController : ControllerBase
     {
         private readonly LibraryDbContext _context;
 
@@ -17,20 +18,10 @@ namespace YourProject.Controllers
             _context = context;
         }
 
-        private bool IsUserLibrarianAsync()
+        // GET: api/books
+        [HttpGet]
+        public async Task<IActionResult> GetBooks([FromQuery] string? searchString)
         {
-            var userId = HttpContext.Session.GetInt32(SessionData.SessionKeyUserId);
-            var isLibrarian = HttpContext.Session.GetInt32(SessionData.SessionKeyIsLibrarian);
-            if (!userId.HasValue || !isLibrarian.HasValue || isLibrarian == 0)
-            {
-                return false;
-            }
-            return true;
-        }
-
-        public async Task<IActionResult> List(string searchString)
-        {
-
             var books = _context.Books.AsQueryable();
 
             if (!string.IsNullOrEmpty(searchString))
@@ -41,9 +32,6 @@ namespace YourProject.Controllers
             }
 
             var bookList = await books.ToListAsync();
-
-            var userId = HttpContext.Session.GetInt32("UserId");
-            bool isUserLoggedIn = userId != null;
 
             foreach (var book in bookList)
             {
@@ -57,28 +45,24 @@ namespace YourProject.Controllers
                 book.IsLeased = activeLease != null;
             }
 
-            ViewBag.IsUserLoggedIn = isUserLoggedIn;
-            ViewBag.CurrentFilter = searchString;
-            return View(bookList);
+            return Ok(bookList);
         }
 
-        [HttpPost]
-        public async Task<IActionResult> ReserveBook(int bookId)
+        [HttpPost("reserve")]
+        public async Task<IActionResult> ReserveBook([FromBody] int bookId)
         {
-            var userId = HttpContext.Session.GetInt32("UserId");
+            var userId = HttpContext.User?.Claims?.FirstOrDefault(c => c.Type == "userId")?.Value;
 
             if (userId == null)
             {
-                TempData["Error"] = "You must be logged in to reserve a book.";
-                return RedirectToAction("Login", "Account");
+                return Unauthorized("You must be logged in to reserve a book.");
             }
 
             var book = await _context.Books.FirstOrDefaultAsync(b => b.BookId == bookId);
 
             if (book == null || book.IsPermanentlyUnavailable)
             {
-                TempData["Error"] = "Book not found.";
-                return RedirectToAction("List");
+                return NotFound("Book not found.");
             }
 
             var existingReservation = await _context.Reservations
@@ -87,14 +71,13 @@ namespace YourProject.Controllers
 
             if (existingReservation != null || existingLease != null)
             {
-                TempData["Error"] = "This book is already leased or reserved.";
-                return RedirectToAction("List");
+                return Conflict("This book is already leased or reserved.");
             }
 
             var newReservation = new Reservation
             {
                 BookId = bookId,
-                UserId = userId.Value,
+                UserId = int.Parse(userId),  // Assuming userId is stored as a claim
                 ReservationDate = DateTime.Now,
                 ReservationEndDate = DateTime.Now.Date.AddDays(2).AddSeconds(-1)
             };
@@ -102,170 +85,94 @@ namespace YourProject.Controllers
             _context.Reservations.Add(newReservation);
             await _context.SaveChangesAsync();
 
-            TempData["Success"] = "Book reserved successfully!";
-
-            return RedirectToAction("List");
+            return Ok("Book reserved successfully!");
         }
 
-        public async Task<IActionResult> ManageBooks()
+        // GET: api/books/manage
+        [HttpGet("manage")]
+        [Authorize(Roles = "Librarian")]
+        public async Task<IActionResult> GetAllBooksForManagement()
         {
-            if (!IsUserLibrarianAsync())
-            {
-                TempData["Error"] = "You do not have access to this page";
-                return RedirectToAction("Index", "Home");
-            }
-
             var books = await _context.Books.ToListAsync();
-            return View(books);
+            return Ok(books);
         }
 
-        public IActionResult AddBook()
+        // POST: api/books/add
+        [HttpPost("add")]
+        [Authorize(Roles = "Librarian")]
+        public async Task<IActionResult> AddBook([FromBody] Book book)
         {
-            if (!IsUserLibrarianAsync())
-            {
-                TempData["Error"] = "You do not have access to this page";
-                return RedirectToAction("Index", "Home");
-            }
-            return View();
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> AddBook([Bind("Name, Author, Publisher, Date_of_publication, Price")] Book book)
-        {
-            if (!IsUserLibrarianAsync())
-            {
-                TempData["Error"] = "You do not have access to this page";
-                return RedirectToAction("Index", "Home");
-            }
-
-            if (ModelState.IsValid)
-            {
-                _context.Books.Add(book);
-                await _context.SaveChangesAsync();
-                return RedirectToAction("ManageBooks");
-            }
-            return View(book);
-        }
-
-        public async Task<IActionResult> EditBook(int id)
-        {
-            if (!IsUserLibrarianAsync())
-            {
-                TempData["Error"] = "You do not have access to this page";
-                return RedirectToAction("Index", "Home");
-            }
-
-            var book = await _context.Books.FirstOrDefaultAsync(b => b.BookId == id);
             if (book == null)
             {
-                return NotFound();
+                return BadRequest("Invalid book data.");
             }
 
-            return View(book);
+            _context.Books.Add(book);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction(nameof(GetBooks), new { id = book.BookId }, book);
         }
 
-        [HttpPost]
-        public async Task<IActionResult> EditBook(Book book)
+        // PUT: api/books/edit/{id}
+        [HttpPut("edit/{id}")]
+        [Authorize(Roles = "Librarian")]
+        public async Task<IActionResult> EditBook(int id, [FromBody] Book book)
         {
-            if (!IsUserLibrarianAsync())
+            if (id != book.BookId)
             {
-                TempData["Error"] = "You do not have access to this page";
-                return RedirectToAction("Index", "Home");
+                return BadRequest("Book ID mismatch.");
             }
 
-            if (ModelState.IsValid)
+            var existingBook = await _context.Books.FindAsync(id);
+
+            if (existingBook == null)
             {
-                try
-                {
-                    var existingBook = await _context.Books
-                        .FirstOrDefaultAsync(b => b.BookId == book.BookId);
-
-                    if (existingBook == null)
-                    {
-                        TempData["Error"] = "Book not found.";
-                        return RedirectToAction("ManageBooks");
-                    }
-
-                    existingBook.Author = book.Author;
-                    existingBook.Publisher = book.Publisher;
-                    existingBook.DateOfPublication = book.DateOfPublication;
-                    existingBook.Price = book.Price;
-                    existingBook.IsPermanentlyUnavailable = book.IsPermanentlyUnavailable;
-                    existingBook.Name = book.Name;
-
-                    _context.Entry(existingBook).Property(b => b.RowVersion).OriginalValue = book.RowVersion;
-
-                    await _context.SaveChangesAsync();
-
-                    TempData["Success"] = "Book updated successfully.";
-                    return RedirectToAction("ManageBooks");
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    TempData["Error"] = "The book data was modified by another user. Please reload and try again.";
-                    return RedirectToAction("ManageBooks");
-                }
+                return NotFound("Book not found.");
             }
 
-            TempData["Error"] = "Invalid/Missing book information.";
-            return View(book);
+            existingBook.Author = book.Author;
+            existingBook.Publisher = book.Publisher;
+            existingBook.DateOfPublication = book.DateOfPublication;
+            existingBook.Price = book.Price;
+            existingBook.IsPermanentlyUnavailable = book.IsPermanentlyUnavailable;
+            existingBook.Name = book.Name;
+
+            await _context.SaveChangesAsync();
+
+            return Ok("Book updated successfully.");
         }
 
-
-
-
+        // DELETE: api/books/delete/{id}
+        [HttpDelete("delete/{id}")]
+        [Authorize(Roles = "Librarian")]
         public async Task<IActionResult> DeleteBook(int id)
         {
-            if (!IsUserLibrarianAsync())
+            var book = await _context.Books
+                .Include(b => b.Leases)
+                .FirstOrDefaultAsync(b => b.BookId == id);
+
+            if (book == null || book.IsPermanentlyUnavailable)
             {
-                TempData["Error"] = "You do not have access to this page";
-                return RedirectToAction("Index", "Home");
+                return NotFound("Book not found or already marked as permanently unavailable.");
             }
 
-            try
+            var activeLease = book.Leases.Any(l => l.LeaseEndDate == null);
+            if (activeLease)
             {
-                var book = await _context.Books
-                    .Include(b => b.Leases)
-                    .FirstOrDefaultAsync(b => b.BookId == id);
-
-                if (book == null || book.IsPermanentlyUnavailable)
-                {
-                    TempData["Error"] = "Book not found or already marked as permanently unavailable.";
-                    return RedirectToAction("ManageBooks");
-                }
-
-                var activeLease = book.Leases.Any(l => l.LeaseEndDate == null);
-                if (activeLease)
-                {
-                    TempData["Error"] = "Book currently leased.";
-                    return RedirectToAction("ManageBooks");
-                }
-
-                if (book.Leases.Any())
-                {
-                    book.IsPermanentlyUnavailable = true;
-                }
-                else
-                {
-                    _context.Books.Remove(book);
-                }
-
-                await _context.SaveChangesAsync();
-                TempData["Success"] = "Book deleted/marked as unavailable successfully.";
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                TempData["Error"] = "The book was modified or deleted by another user.";
-            }
-            catch (Exception ex)
-            {
-                TempData["Error"] = $"An error occurred while processing your request: {ex.Message}";
+                return Conflict("Book currently leased.");
             }
 
-            return RedirectToAction("ManageBooks");
+            if (book.Leases.Any())
+            {
+                book.IsPermanentlyUnavailable = true;
+            }
+            else
+            {
+                _context.Books.Remove(book);
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok("Book deleted/marked as unavailable successfully.");
         }
-
-
     }
-
 }

@@ -5,10 +5,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LibraryManagementSystem.Data;
 using LibraryManagementSystem.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace LibraryManagementSystem.Controllers
 {
-    public class LeasesController : Controller
+    [Route("api/[controller]")]
+    [ApiController]
+    public class LeasesController : ControllerBase
     {
         private readonly LibraryDbContext _context;
 
@@ -18,110 +21,85 @@ namespace LibraryManagementSystem.Controllers
         }
 
         private bool IsUserLoggedIn() =>
-            HttpContext.Session.GetInt32(SessionData.SessionKeyUserId).HasValue;
+            HttpContext.User.Identity.IsAuthenticated;
 
         private bool IsUserLibrarian() =>
-            HttpContext.Session.GetInt32(SessionData.SessionKeyIsLibrarian) == 1;
+            HttpContext.User.IsInRole("Librarian");
 
-        public async Task<IActionResult> Index()
+        // GET: api/leases
+        [HttpGet]
+        [Authorize]
+        public async Task<ActionResult> GetLeases()
         {
             if (!IsUserLoggedIn() || !IsUserLibrarian())
             {
-                TempData["Error"] = "You do not have access to this page";
-                return RedirectToAction("Index", "Home");
+                return Unauthorized("You do not have access to this page");
             }
 
-            var leases = _context.Leases
+            var leases = await _context.Leases
                 .Include(l => l.Book)
                 .Include(l => l.User)
-                .Where(l => l.IsActive);
+                .Where(l => l.IsActive)
+                .ToListAsync();
 
-            return View(await leases.ToListAsync());
+            return Ok(leases);
         }
 
-        public async Task<IActionResult> Details(int? id)
+        // GET: api/leases/5
+        [HttpGet("{id}")]
+        [Authorize]
+        public async Task<ActionResult> GetLease(int id)
         {
             if (!IsUserLoggedIn() || !IsUserLibrarian())
             {
-                TempData["Error"] = "You do not have access to this page";
-                return RedirectToAction("Index", "Home");
-            }
-
-            if (!id.HasValue)
-            {
-                return NotFound();
+                return Unauthorized("You do not have access to this page");
             }
 
             var lease = await _context.Leases
                 .Include(l => l.Book)
                 .Include(l => l.User)
-                .FirstOrDefaultAsync(m => m.LeaseId == id.Value);
+                .FirstOrDefaultAsync(m => m.LeaseId == id);
 
             if (lease == null)
             {
                 return NotFound();
             }
 
-            return View(lease);
+            return Ok(lease);
         }
 
-        public async Task<IActionResult> EndLease(int? id)
+        // PUT: api/leases/5/end
+        [HttpPut("{id}/end")]
+        [Authorize]
+        public async Task<ActionResult> EndLease(int id)
         {
             if (!IsUserLoggedIn() || !IsUserLibrarian())
             {
-                TempData["Error"] = "You do not have access to this page";
-                return RedirectToAction("Index", "Home");
-            }
-
-            if (!id.HasValue)
-            {
-                return NotFound();
+                return Unauthorized("You do not have access to this page");
             }
 
             var lease = await _context.Leases
-                .Include(l => l.Book)
-                .Include(l => l.User)
-                .FirstOrDefaultAsync(m => m.LeaseId == id.Value);
+                .FirstOrDefaultAsync(m => m.LeaseId == id);
 
             if (lease == null)
             {
                 return NotFound();
             }
 
-            return View(lease);
-        }
+            lease.LeaseEndDate = DateTime.Now;
+            lease.IsActive = false;
 
-        [HttpPost, ActionName("EndLease")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
-        {
-            if (!IsUserLoggedIn() || !IsUserLibrarian())
+            try
             {
-                TempData["Error"] = "You do not have access to this page";
-                return RedirectToAction("Index", "Home");
+                _context.Update(lease);
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return Conflict("The lease was modified by another user. Please reload and try again.");
             }
 
-            var lease = await _context.Leases.FindAsync(id);
-            if (lease != null)
-            {
-                try
-                {
-                    lease.LeaseEndDate = DateTime.Now;
-                    lease.IsActive = false;
-
-                    _context.Update(lease);
-                    await _context.SaveChangesAsync();
-
-                    TempData["Success"] = "Lease ended successfully!";
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    TempData["Error"] = "The lease was modified by another user. Please reload and try again.";
-                    return RedirectToAction(nameof(Index));
-                }
-            }
-
-            return RedirectToAction(nameof(Index));
+            return Ok("Lease ended successfully!");
         }
 
         private bool LeaseExists(int id) =>

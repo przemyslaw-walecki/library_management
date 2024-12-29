@@ -59,10 +59,6 @@ namespace LibraryManagementSystem.Data
                     .HasMaxLength(100)
                     .HasColumnName("publisher");
 
-                entity.Property(e => e.RowVersion)
-                    .IsRowVersion()
-                    .IsConcurrencyToken()
-                .HasColumnName("RowVersion").ValueGeneratedOnAddOrUpdate(); 
             });
 
             modelBuilder.Entity<Lease>(entity =>

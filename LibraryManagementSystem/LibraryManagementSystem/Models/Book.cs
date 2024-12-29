@@ -30,8 +30,5 @@ namespace LibraryManagementSystem.Models
         public bool IsLeased;
         public bool IsReserved;
 
-        [Timestamp]
-        [Column("RowVersion")]
-        public byte[] RowVersion { get; set; }
     }
 }
