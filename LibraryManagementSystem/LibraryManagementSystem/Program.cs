@@ -60,9 +60,10 @@ namespace LibraryManagementSystem
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("AllowReactApp",
-                    policy => policy.WithOrigins("http://localhost:3000", "http://localhost:7276")
+                    policy => policy.WithOrigins("http://localhost:3000")
                                     .AllowAnyMethod()
-                                    .AllowAnyHeader());
+                                    .AllowAnyHeader()
+                                    .AllowCredentials());
             });
 
 
@@ -83,7 +84,6 @@ namespace LibraryManagementSystem
 
             SwaggerService.UseSwagger(app);
 
-            app.UseHttpsRedirection();
             app.UseStaticFiles();
             app.UseRouting();
             app.UseAuthorization();
