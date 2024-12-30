@@ -47,9 +47,10 @@ namespace LibraryManagementSystem.Models
 
     public class BookEditDto
     {
+        public int BookId { get; set; }
         public string Author { get; set; } = null !;
         public string? Publisher { get; set; }
-        public DateTime? DateOfPublication { get; set; }
+        public String? DateOfPublication { get; set; }
         public decimal Price { get; set; }
         public string Name { get; set; } = null!;
     }

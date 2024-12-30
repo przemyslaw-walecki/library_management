@@ -6,6 +6,7 @@ namespace LibraryManagementSystem.Models
 {
     public partial class Reservation
     {
+        [Column ("reservation_id")]
         public int ReservationId { get; set; }
         public int UserId { get; set; } 
         public int BookId { get; set; }

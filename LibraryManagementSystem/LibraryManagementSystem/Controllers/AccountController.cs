@@ -98,10 +98,11 @@ namespace LibraryManagementSystem.Controllers
                 Expires = DateTime.UtcNow.AddMinutes(10)
             });
 
-            return Ok("Login successfull");
+            return Ok(new {token});
+
         }
 
-        [HttpPost("register")]
+    [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] User user)
         {
             var detectUsernameConflict = await _context.Users.FirstOrDefaultAsync(u => u.Username == user.Username).ConfigureAwait(false);

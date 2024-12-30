@@ -7,6 +7,7 @@ using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Newtonsoft.Json;
 
 namespace LibraryManagementSystem.Controllers
 {
@@ -88,6 +89,36 @@ namespace LibraryManagementSystem.Controllers
             return Ok(bookDtos);
         }
 
+        // GET: api/books/{id}
+        [HttpGet("{id}")]
+        [Authorize(Roles = "Librarian")]
+        public async Task<IActionResult> GetBookById(int id)
+        {
+            var book = await _context.Books
+                .Include(b => b.Leases)
+                .Include(b => b.Reservations)
+                .FirstOrDefaultAsync(b => b.BookId == id);
+
+            if (book == null)
+            {
+                return NotFound("Book not found.");
+            }
+
+
+            var bookDto = new BookEditDto
+            {
+                BookId = book.BookId,
+                Author = book.Author,
+                Publisher = book.Publisher,
+                DateOfPublication = book.DateOfPublication?.ToString("yyyy-MM-dd"),
+                Price = book.Price,
+                Name = book.Name
+            };
+
+            return Ok(bookDto);
+        }
+
+
         // POST: api/books/reserve
         [HttpPost("reserve")]
         [Authorize(Roles = "User")]
@@ -134,8 +165,25 @@ namespace LibraryManagementSystem.Controllers
         [Authorize(Roles = "Librarian")]
         public async Task<IActionResult> GetAllBooksForManagement()
         {
-            var books = await _context.Books.ToListAsync();
-            return Ok(books);
+            var books = await _context.Books
+                .Include(b => b.Leases)
+                .Include(b => b.Reservations)
+                .ToListAsync();
+
+            var bookDtos = books.Select(b => new BookListDTO
+            {
+                BookId = b.BookId,
+                Author = b.Author,
+                Publisher = b.Publisher,
+                DateOfPublication = b.DateOfPublication,
+                Price = b.Price,
+                IsPermanentlyUnavailable = b.IsPermanentlyUnavailable,
+                Name = b.Name,
+                IsLeased = b.IsLeased,
+                IsReserved = b.IsReserved
+            }).ToList();
+
+            return Ok(bookDtos);
         }
 
         // POST: api/books/add
@@ -159,16 +207,22 @@ namespace LibraryManagementSystem.Controllers
         [Authorize(Roles = "Librarian")]
         public async Task<IActionResult> EditBook(int id, [FromBody] BookEditDto book)
         {
+            Console.WriteLine("Received Book DTO: " + JsonConvert.SerializeObject(book));
             var existingBook = await _context.Books.FindAsync(id);
 
             if (existingBook == null)
             {
                 return NotFound("Book not found.");
             }
+            var parsedDate = existingBook.DateOfPublication;
+            if (!string.IsNullOrEmpty(book.DateOfPublication))
+            {
+                parsedDate = DateTime.Parse(book.DateOfPublication);
+            }
 
             existingBook.Author = book.Author;
             existingBook.Publisher = book.Publisher;
-            existingBook.DateOfPublication = book.DateOfPublication;
+            existingBook.DateOfPublication = parsedDate;
             existingBook.Price = book.Price;
             existingBook.Name = book.Name;
 
