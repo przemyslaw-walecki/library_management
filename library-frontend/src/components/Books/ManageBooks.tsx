@@ -1,8 +1,6 @@
-import React, { useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchManageBooks, deleteBook } from '../../services/api';
-
-
 
 const ManageBooks: React.FC = () => {
   const [books, setBooks] = useState<any[]>([]);
@@ -44,34 +42,55 @@ const ManageBooks: React.FC = () => {
     }
   };
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>{error}</div>;
-
-  
+  if (loading) return <div className="text-center mt-5">Loading...</div>;
+  if (error) return <div className="alert alert-danger">{error}</div>;
 
   return (
-    <div>
-      <h1>Manage Books</h1>
-      <button onClick={() => navigate('/add-book')}>Add Book</button>
-      <ul>
+    <div className="container mt-5">
+      <h1 className="mb-4 text-center">Manage Books</h1>
+      <div className="d-flex justify-content-end mb-3">
+        <button
+          onClick={() => navigate('/add-book')}
+          className="btn btn-primary"
+        >
+          Add Book
+        </button>
+      </div>
+      <div className="list-group">
         {books.map((book) => (
-          <div className="book-item" key={book.bookId}>
-            <h4>{book.name}</h4>
-            <p>{book.author}</p>
-            <p>{book.publisher}</p>
-            <p>{new Date(book.dateOfPublication).toLocaleDateString()}</p>
-            <p>{book.price}</p>
-            {book.is_permanently_available ? (
-              <p>This book is marked as permanently unavailable.</p>
-            ) : (
-              <div>
-                <button onClick={() => navigate(`/edit-book/${book.bookId}`)}>Edit</button>
-                <button onClick={() => handleDelete(book.bookId)}>Delete</button>
+          <div
+            className="list-group-item d-flex justify-content-between align-items-center"
+            key={book.bookId}
+          >
+            <div>
+              <h4 className="mb-1">{book.name}</h4>
+              <p className="mb-0"><strong>Author:</strong> {book.author}</p>
+              <p className="mb-0"><strong>Publisher:</strong> {book.publisher}</p>
+              <p className="mb-0"><strong>Date:</strong> {new Date(book.dateOfPublication).toLocaleDateString()}</p>
+              <p className="mb-0"><strong>Price:</strong> ${book.price}</p>
+              {book.is_permanently_available && (
+                <p className="text-danger mt-2">This book is marked as permanently unavailable.</p>
+              )}
+            </div>
+            {!book.is_permanently_available && (
+              <div className="d-flex flex-column align-items-end">
+                <button
+                  onClick={() => navigate(`/edit-book/${book.bookId}`)}
+                  className="btn btn-warning btn-sm mb-2"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDelete(book.bookId)}
+                  className="btn btn-danger btn-sm"
+                >
+                  Delete
+                </button>
               </div>
             )}
           </div>
         ))}
-      </ul>
+      </div>
     </div>
   );
 };

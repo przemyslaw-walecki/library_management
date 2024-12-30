@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchUserAccount, deleteAccount, cancelReservation, User } from '../../services/api';
 
-
 const MyAccount: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -51,7 +50,7 @@ const MyAccount: React.FC = () => {
           ? {
               ...prevUser,
               reservations: {
-                ...prevUser.reservations,  // Ensure you maintain other properties in reservations
+                ...prevUser.reservations,
                 $values: prevUser.reservations.$values.filter(
                   (r) => r.reservationId !== reservationId
                 ),
@@ -65,71 +64,78 @@ const MyAccount: React.FC = () => {
       setErrorMessage('Failed to cancel reservation.');
     }
   };
-  
+
   if (loading) {
-    return <div>Loading...</div>;
+    return <div className="text-center mt-5">Loading...</div>;
   }
 
   if (!user) {
     return (
-      <div>
-        <p>You are not logged in. Please log in to view your account.</p>
+      <div className="container mt-5">
+        <div className="alert alert-warning text-center">
+          You are not logged in. Please log in to view your account.
+        </div>
       </div>
     );
   }
 
   return (
-    <div>
-      <h2>My Account</h2>
+    <div className="container mt-5">
+      <h2 className="text-center mb-4">My Account</h2>
 
       {successMessage && <div className="alert alert-success">{successMessage}</div>}
       {errorMessage && <div className="alert alert-danger">{errorMessage}</div>}
 
-      <div className="user-info">
-        <h4>Your Information</h4>
-        <p>
-          <strong>Name:</strong> {user.firstName} {user.lastName}
-        </p>
-        <p>
-          <strong>Email:</strong> {user.email}
-        </p>
-        <p>
-          <strong>Phone Number:</strong> {user.phoneNumber || 'Not provided'}
-        </p>
+      <div className="card mb-4 shadow-sm">
+        <div className="card-header bg-info text-white">
+          <h4>Your Information</h4>
+        </div>
+        <div className="card-body">
+          <p>
+            <strong>Name:</strong> {user.firstName} {user.lastName}
+          </p>
+          <p>
+            <strong>Email:</strong> {user.email}
+          </p>
+          <p>
+            <strong>Phone Number:</strong> {user.phoneNumber || 'Not provided'}
+          </p>
+        </div>
       </div>
 
-        <button onClick={handleDeleteAccount} className="btn btn-danger">
-          Delete My Account
-        </button>
-
-      <div className="reservations">
+      <div className="mb-4">
         <h4>Your Reservations</h4>
         {user.reservations.$values.length > 0 ? (
-          <ul>
+          <ul className="list-group">
             {user.reservations.$values.map((reservation) => (
-              <li key={reservation.reservationId}>
-                <strong>{reservation.book.name}</strong> - Reserved until{' '}
-                {new Date(reservation.reservationEndDate).toLocaleDateString()}
+              <li
+                key={reservation.reservationId}
+                className="list-group-item d-flex justify-content-between align-items-center shadow-sm"
+              >
+                <span>
+                  <strong>{reservation.book.name}</strong> - Reserved until{' '}
+                  {new Date(reservation.reservationEndDate).toLocaleDateString()}
+                </span>
                 <button
                   onClick={() => handleCancelReservation(reservation.reservationId)}
-                  className="btn btn-warning"
+                  className="btn btn-warning btn-sm shadow-sm"
                 >
-                  Cancel Reservation
+                  Cancel
                 </button>
               </li>
             ))}
           </ul>
         ) : (
-          <p>You have no reservations.</p>
+          <p className="text-muted">You have no reservations.</p>
         )}
       </div>
 
-      <div className="leases">
+      <div>
         <h4>Your Leases</h4>
         {user.leases.$values.length > 0 ? (
-          <ul>
+          <ul className="list-group">
             {user.leases.$values.map((lease) => (
-              <li key={lease.leaseId}>
+              <li key={lease.leaseId} className="list-group-item shadow-sm">
                 <strong>{lease.book.name}</strong> - Leased since{' '}
                 {new Date(lease.leaseStartDate).toLocaleDateString()}{' '}
                 {lease.leaseEndDate ? (
@@ -137,16 +143,25 @@ const MyAccount: React.FC = () => {
                     - Ended on {new Date(lease.leaseEndDate).toLocaleDateString()}
                   </span>
                 ) : (
-                  <span className="text-muted">Lease is active</span>
+                  <span className="badge bg-success">Lease is active</span>
                 )}
               </li>
             ))}
           </ul>
         ) : (
-          <p>You have no leases.</p>
+          <p className="text-muted">You have no leases.</p>
         )}
       </div>
+
+      <button
+        onClick={handleDeleteAccount}
+        className="btn btn-danger btn-lg w-100 shadow-sm mb-4 p-50"
+      >
+        Delete My Account
+      </button>
+
     </div>
+
   );
 };
 

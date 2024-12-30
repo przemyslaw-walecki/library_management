@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { fetchBookById, saveBook, Book } from '../../services/api';
 
-
 const BookForm: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -57,14 +56,15 @@ const BookForm: React.FC = () => {
     }
   };
 
-  
   return (
-    <div>
-      <h1>{id ? 'Edit Book' : 'Add New Book'}</h1>
-      {error && <div className="error">{error}</div>}
-      <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label htmlFor="name">Name</label>
+    <div className="container mt-5">
+      <h1 className="text-center mb-4">{id ? 'Edit Book' : 'Add New Book'}</h1>
+
+      {error && <div className="alert alert-danger">{error}</div>}
+
+      <form onSubmit={handleSubmit} className="p-4 border rounded bg-light shadow-sm">
+        <div className="form-group mb-3">
+          <label htmlFor="name" className="form-label">Name</label>
           <input
             type="text"
             className="form-control"
@@ -75,8 +75,9 @@ const BookForm: React.FC = () => {
             required
           />
         </div>
-        <div className="form-group">
-          <label htmlFor="author">Author</label>
+
+        <div className="form-group mb-3">
+          <label htmlFor="author" className="form-label">Author</label>
           <input
             type="text"
             className="form-control"
@@ -87,8 +88,9 @@ const BookForm: React.FC = () => {
             required
           />
         </div>
-        <div className="form-group">
-          <label htmlFor="publisher">Publisher</label>
+
+        <div className="form-group mb-3">
+          <label htmlFor="publisher" className="form-label">Publisher</label>
           <input
             type="text"
             className="form-control"
@@ -98,8 +100,9 @@ const BookForm: React.FC = () => {
             onChange={handleChange}
           />
         </div>
-        <div className="form-group">
-          <label htmlFor="dateOfPublication">Date of Publication</label>
+
+        <div className="form-group mb-3">
+          <label htmlFor="dateOfPublication" className="form-label">Date of Publication</label>
           <input
             type="date"
             className="form-control"
@@ -109,8 +112,9 @@ const BookForm: React.FC = () => {
             onChange={handleChange}
           />
         </div>
-        <div className="form-group">
-          <label htmlFor="price">Price</label>
+
+        <div className="form-group mb-4">
+          <label htmlFor="price" className="form-label">Price</label>
           <input
             type="number"
             className="form-control"
@@ -121,7 +125,8 @@ const BookForm: React.FC = () => {
             required
           />
         </div>
-        <button type="submit" className="btn btn-primary" disabled={loading}>
+
+        <button type="submit" className="btn btn-primary w-100" disabled={loading}>
           {loading ? 'Saving...' : 'Save'}
         </button>
       </form>

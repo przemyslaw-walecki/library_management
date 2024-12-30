@@ -1,7 +1,7 @@
 // src/index.tsx
 import React from 'react';
-import ReactDOM from 'react-dom/client'; // React 18 uses this for creating the root
-import './index.css';
+import ReactDOM from 'react-dom/client';
+import 'bootstrap/dist/css/bootstrap.min.css';
 import App from './App';
 
 const root = ReactDOM.createRoot(document.getElementById('root')!);
