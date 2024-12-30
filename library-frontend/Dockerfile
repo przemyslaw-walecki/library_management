@@ -3,22 +3,25 @@ FROM node:20 AS build
 WORKDIR /app
 
 # Install dependencies and build the app
-COPY package.json package-lock.json ./
+COPY package.json package-lock.json ./ 
 RUN npm install
-COPY . ./
+COPY . ./ 
 RUN npm run build
 
-# Use Nginx to serve the static files
-FROM nginx:alpine
+# Use a minimal Node.js image to serve the app
+FROM node:20-alpine
 
-# Copy the built React app to the Nginx directory
-COPY --from=build /app/build /usr/share/nginx/html
+# Install serve globally
+RUN npm install -g serve
 
-# Copy the custom nginx.conf file
-COPY nginx.conf /etc/nginx/nginx.conf
+# Set the working directory to the build folder
+WORKDIR /app
 
-# Expose port 80 (the port for Nginx)
-EXPOSE 80
+# Copy the build folder from the build stage
+COPY --from=build /app/build /app/build
 
-# Default command to run Nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Expose port 5000 (or any other port you prefer)
+EXPOSE 3000
+
+# Serve the React app using 'serve'
+CMD ["serve", "-s", "build", "-l", "3000"]
