@@ -68,11 +68,11 @@ const ManageBooks: React.FC = () => {
               <p className="mb-0"><strong>Publisher:</strong> {book.publisher}</p>
               <p className="mb-0"><strong>Date:</strong> {new Date(book.dateOfPublication).toLocaleDateString()}</p>
               <p className="mb-0"><strong>Price:</strong> ${book.price}</p>
-              {book.is_permanently_available && (
+              {book.isPermanentlyUnavailable && (
                 <p className="text-danger mt-2">This book is marked as permanently unavailable.</p>
               )}
             </div>
-            {!book.is_permanently_available && (
+            {!book.isPermanentlyUnavailable && (
               <div className="d-flex flex-column align-items-end">
                 <button
                   onClick={() => navigate(`/edit-book/${book.bookId}`)}
