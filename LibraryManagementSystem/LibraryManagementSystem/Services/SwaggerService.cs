@@ -50,9 +50,7 @@ namespace LibraryManagementSystem.Services
             app.UseSwaggerUI(c =>
             {
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "Library Management API v1");
-                c.RoutePrefix = string.Empty; // Swagger UI at root
-
-                // No need to add security here; it’s already handled in AddSwaggerGen
+                c.RoutePrefix = string.Empty;
             });
         }
     }
