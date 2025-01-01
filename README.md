@@ -14,7 +14,5 @@
     `dotnet build`
     `dotnet run`
 - #### React frontend:
-  - Enter library-frontend
-  - Run React config:
-  - `npm install`
-    `npm start`
+    - Run docker-compose:
+      - `docker-compose up -d 
