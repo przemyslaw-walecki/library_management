@@ -67,9 +67,9 @@ export const logout = async (): Promise<void> => {
     credentials: 'include',
   });
 
-  if (!response.ok) throw new Error('Logout failed');
-  localStorage.removeItem('role')
-};
+    if (!response.ok) throw new Error('Logout failed');
+    localStorage.removeItem('role');
+  };
 
 export const fetchBooks = async (searchString: string = ''): Promise<BooksResponse> => {
   const response = await fetch(`${API_URL}/Books?searchString=${searchString}`, {
@@ -302,5 +302,40 @@ export const endLease = async (leaseId: number) => {
 
   if (!response.ok) {
     throw new Error('Failed to end the lease');
+  }
+};
+
+interface LeasePartial {
+  leaseStartDate: string;
+  leaseEndDate: string;
+  user: User;
+}
+
+export interface BookWithLeases {
+  bookId: number;
+  name: string;
+  author: string;
+  publisher: string;
+  dateOfPublication: string;
+  price: number;
+  leases: Collection<LeasePartial>;
+}
+
+export const fetchBookWithLeases = async (bookId: number) => {
+  try {
+    const response = await fetch(`${API_URL}/books/${bookId}/with-leases`,
+      {
+        credentials : 'include'
+      }
+    );
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch book data.');
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    throw new Error('Failed to fetch book data.');
   }
 };

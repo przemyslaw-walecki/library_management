@@ -46,9 +46,6 @@ const LeaseFromReservationPage: React.FC = () => {
         <h4>Reservation Details</h4>
         <hr />
         <dl className="row">
-          <dt className="col-sm-2">Reservation Date</dt>
-          <dd className="col-sm-10">{reservation.reservationDate}</dd>
-
           <dt className="col-sm-2">Reservation End Date</dt>
           <dd className="col-sm-10">{reservation.reservationEndDate}</dd>
 

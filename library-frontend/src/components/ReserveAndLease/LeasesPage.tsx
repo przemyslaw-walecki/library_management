@@ -50,9 +50,6 @@ const LeasesPage: React.FC = () => {
               <td>{lease.book.name}</td>
               <td>{lease.user.firstName}</td>
               <td>
-                <button onClick={() => navigate(`/leases/details/${lease.leaseId}`)} className="btn btn-secondary ms-2">
-                  Details
-                </button>
                 <button onClick={() => handleEndLease(lease.leaseId)} className="btn btn-danger ms-2">
                   End Lease
                 </button>

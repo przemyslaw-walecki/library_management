@@ -21,10 +21,11 @@ const EndLeasePage: React.FC = () => {
 
     fetchLeaseDetails();
   }, [id]);
-  
-  if (localStorage.getItem('role') !== 'Librarian') {
-    navigate('/list-books');
-  }
+
+ const role = localStorage.getItem('role');
+    if (!role || role !== 'Librarian') {
+      navigate('/list-books');
+    }
 
 
   if (!lease) {

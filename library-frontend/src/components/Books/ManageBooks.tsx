@@ -41,6 +41,11 @@ const ManageBooks: React.FC = () => {
     }
   };
 
+  const role = localStorage.getItem('role');
+  if (!role || role !== 'Librarian') {
+    navigate('/list-books');
+  }
+
   if (loading) return <div className="text-center mt-5">Loading...</div>;
   if (error) return <div className="alert alert-danger">{error}</div>;
 
@@ -71,21 +76,32 @@ const ManageBooks: React.FC = () => {
                 <p className="text-danger mt-2">This book is marked as permanently unavailable.</p>
               )}
             </div>
-            {!book.isPermanentlyUnavailable && (
+            {!book.isPermanentlyUnavailable ? (
               <div className="d-flex flex-column align-items-end">
                 <button
                   onClick={() => navigate(`/edit-book/${book.bookId}`)}
-                  className="btn btn-warning btn-sm mb-2"
+                  className="btn btn-warning btn-sm mb-2 w-100"
                 >
                   Edit
                 </button>
                 <button
                   onClick={() => handleDelete(book.bookId)}
-                  className="btn btn-danger btn-sm"
+                  className="btn btn-danger btn-sm mb-2 w-100"
                 >
                   Delete
-                </button>
+                  </button>
+                  <button
+                  onClick={() => navigate(`/manage-books/history/${book.bookId}`)}
+                  className="btn btn-success btn-sm mb-2 w-100"
+                >History</button>
+                  
+                
               </div>
+            ) : (
+              <button
+                  onClick={() => navigate(`/manage-books/history/${book.bookId}`)}
+                  className="btn btn-success btn-sm mb-2 w-10"
+                >History</button>
             )}
           </div>
         ))}

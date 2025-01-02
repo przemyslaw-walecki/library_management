@@ -56,6 +56,10 @@ const BookForm: React.FC = () => {
     }
   };
 
+  if (localStorage.getItem('role') !== 'Librarian') {
+    navigate('/list-books');
+  }
+
   return (
     <div className="container mt-5">
       <h1 className="text-center mb-4">{id ? 'Edit Book' : 'Add New Book'}</h1>

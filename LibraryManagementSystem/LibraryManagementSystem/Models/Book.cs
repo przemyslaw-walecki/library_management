@@ -54,5 +54,22 @@ namespace LibraryManagementSystem.Models
         public decimal Price { get; set; }
         public string Name { get; set; } = null!;
     }
+    public class LeasePartialDto
+{
+    public DateTime LeaseStartDate { get; set; }
+    public DateTime? LeaseEndDate { get; set; }
+    public UserDto User { get; set; }
+}
+
+public class BookWithLeasesDto
+{
+    public int BookId { get; set; }
+    public string Name { get; set; }
+    public string Author { get; set; }
+    public string Publisher { get; set; }
+    public String? DateOfPublication { get; set; }
+    public decimal Price { get; set; }
+    public List<LeasePartialDto> Leases { get; set; }
+}
 
 }

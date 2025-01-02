@@ -46,9 +46,6 @@ const ReservationsPage: React.FC = () => {
                 <button onClick={() => navigate(`/leases/lease/${reservation.reservationId}`)} className="btn btn-primary">
                   Lease
                 </button>
-                <button onClick={() => navigate(`/reservations/details/${reservation.reservationId}`)} className="btn btn-secondary ms-2">
-                  Details
-                </button>
               </td>
             </tr>
           ))}

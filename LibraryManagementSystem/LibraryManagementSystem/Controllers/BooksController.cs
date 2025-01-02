@@ -118,6 +118,47 @@ namespace LibraryManagementSystem.Controllers
             return Ok(bookDto);
         }
 
+    [HttpGet("{id}/with-leases")]
+    [Authorize(Roles = "Librarian")]
+    public async Task<IActionResult> GetBookWithLeases(int id)
+    {
+        var book = await _context.Books
+            .Include(b => b.Leases) 
+            .ThenInclude(l => l.User) 
+            .FirstOrDefaultAsync(b => b.BookId == id);
+
+        if (book == null)
+        {
+            return NotFound(new { message = "Book not found." });
+        }
+
+        var bookWithLeasesDto = new BookWithLeasesDto
+        {
+            BookId = book.BookId,
+            Name = book.Name,
+            Author = book.Author,
+            Publisher = book.Publisher,
+            DateOfPublication = book.DateOfPublication?.ToString("yyyy-MM-dd"),
+            Price = book.Price,
+            Leases = book.Leases.Select(lease => new LeasePartialDto
+            {
+                LeaseStartDate = lease.LeaseStartDate,
+                LeaseEndDate = lease.LeaseEndDate,
+                User = new UserDto
+                {
+                    UserId = lease.User.Id,
+                    Username = lease.User.Username,
+                    Email = lease.User.Email,
+                    PhoneNumber = lease.User.PhoneNumber,
+                    FirstName = lease.User.FirstName,
+                    LastName = lease.User.LastName
+                }
+            }).ToList()
+        };
+
+        return Ok(bookWithLeasesDto);
+    }
+
 
         // POST: api/books/reserve
         [HttpPost("reserve")]

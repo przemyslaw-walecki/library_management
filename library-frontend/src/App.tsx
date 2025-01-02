@@ -9,11 +9,9 @@ import BookForm from './components/Books/BookForm';
 import RegisterPage from './components/Account/RegisterPage';
 import ReservationsPage from './components/ReserveAndLease/ReservationsPage';
 import LeasesPage from './components/ReserveAndLease/LeasesPage';
-import LeaseDetailsPage from './components/ReserveAndLease/LeaseDetailsPage';
-import ReservationDetailsPage from './components/ReserveAndLease/ReservationDetailsPage';
 import EndLeasePage from './components/ReserveAndLease/EndLeasePage';
 import LeaseFromReservationPage from './components/ReserveAndLease/LeaseFromReservationPage';
-
+import BookLeaseHistoryPage from './components/Books/BookLeaseHistoryPage';
 
 const App: React.FC = () => {
   return (
@@ -28,12 +26,11 @@ const App: React.FC = () => {
         <Route path="/add-book" element={<BookForm />} />
         <Route path="/" element={<BookListPage />} />
         <Route path="/register" element={<RegisterPage/>} />
-          <Route path="/reservations" element={<ReservationsPage />} />
-          <Route path="/reservations/details/:id" element={<ReservationDetailsPage />} />
-          <Route path="/leases" element={<LeasesPage />} />
-          <Route path="/leases/details/:id" element={<LeaseDetailsPage />} />
-          <Route path="/leases/end/:id" element={<EndLeasePage />} />
-          <Route path="/leases/lease/:id" element={<LeaseFromReservationPage />} />
+        <Route path="/reservations" element={<ReservationsPage />} />
+        <Route path="/leases" element={<LeasesPage />} />
+        <Route path="/leases/end/:id" element={<EndLeasePage />} />
+        <Route path="/leases/lease/:id" element={<LeaseFromReservationPage />} />
+        <Route path="manage-books/history/:id" element={<BookLeaseHistoryPage />} />
       </Routes>
     </Router>
   );
