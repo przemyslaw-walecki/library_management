@@ -20,7 +20,7 @@ services:
       context: ./library-frontend
       dockerfile: Dockerfile
     ports:
-      - "3000:80"
+      - "3000:3000"
     networks:
       - library_network
 
