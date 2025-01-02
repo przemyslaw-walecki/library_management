@@ -22,6 +22,10 @@ const LeaseDetailsPage: React.FC = () => {
     fetchLeaseDetails();
   }, [id]);
 
+  if (localStorage.getItem('role') !== 'Librarian') {
+    navigate('/list-books');
+  }
+
   if (!lease) {
     return (<div>Loading...</div>);
   }

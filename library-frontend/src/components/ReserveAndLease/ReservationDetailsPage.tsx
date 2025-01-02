@@ -20,6 +20,10 @@ const ReservationDetailsPage: React.FC = () => {
     fetchReservationDetails();
   }, [id]);
 
+  if (localStorage.getItem('role') !== 'Librarian') {
+    navigate('/list-books');
+  }
+
   if (!reservation) {
     return (<div>Loading...</div>);
   }

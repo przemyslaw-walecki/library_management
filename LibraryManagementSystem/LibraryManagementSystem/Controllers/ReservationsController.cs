@@ -68,7 +68,6 @@ namespace LibraryManagementSystem.Controllers
                 .Where(r => r.ReservationEndDate > DateTime.Now)
                 .ToListAsync();
 
-            // Map reservations to ReservationDto
             var reservationDtos = reservations.Select(reservation => new ReservationDto
             {
                 ReservationId = reservation.ReservationId,
@@ -111,7 +110,6 @@ namespace LibraryManagementSystem.Controllers
                 return NotFound();
             }
 
-            // Map reservation to ReservationDto
             var reservationDto = new ReservationDto
             {
                 ReservationId = reservation.ReservationId,

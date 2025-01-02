@@ -1,7 +1,7 @@
 // EndLeasePage.tsx
 
 import React, { useEffect, useState } from 'react';
-import { getLeaseById } from '../../services/api';
+import { getLeaseById, endLease } from '../../services/api';
 import { useNavigate, useParams } from 'react-router-dom';
 
 const EndLeasePage: React.FC = () => {
@@ -21,6 +21,11 @@ const EndLeasePage: React.FC = () => {
 
     fetchLeaseDetails();
   }, [id]);
+  
+  if (localStorage.getItem('role') !== 'Librarian') {
+    navigate('/list-books');
+  }
+
 
   if (!lease) {
     return <div>Loading...</div>;
@@ -28,8 +33,8 @@ const EndLeasePage: React.FC = () => {
 
   const handleEndLease = async () => {
     try {
-      await endLease(lease.leaseId); // Call the function to end the lease
-      navigate('/leases'); // Redirect to the lease list page
+      await endLease(lease.leaseId);
+      navigate('/leases'); 
     } catch (error) {
       console.error('Error ending lease:', error);
     }
@@ -45,14 +50,11 @@ const EndLeasePage: React.FC = () => {
           <dt className="col-sm-2">Lease Start Date</dt>
           <dd className="col-sm-10">{lease.leaseStartDate}</dd>
 
-          <dt className="col-sm-2">Lease End Date</dt>
-          <dd className="col-sm-10">{lease.leaseEndDate}</dd>
-
           <dt className="col-sm-2">Book</dt>
           <dd className="col-sm-10">{lease.book.name}</dd>
 
           <dt className="col-sm-2">User</dt>
-          <dd className="col-sm-10">{lease.user.firstName}</dd>
+          <dd className="col-sm-10">{lease.user.username}</dd>
         </dl>
 
         <form onSubmit={(e) => e.preventDefault()}>

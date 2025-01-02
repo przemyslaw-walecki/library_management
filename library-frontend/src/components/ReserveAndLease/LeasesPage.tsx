@@ -25,6 +25,10 @@ const LeasesPage: React.FC = () => {
     navigate(`/leases/end/${leaseId}`);
   };
 
+  if (localStorage.getItem('role') !== 'Librarian') {
+    navigate('/list-books');
+  }
+
   return (
     <div className="container">
       <h1>Active Leases</h1>
@@ -42,7 +46,7 @@ const LeasesPage: React.FC = () => {
           {leases.map((lease) => (
             <tr key={lease.leaseId}>
               <td>{lease.leaseStartDate}</td>
-              <td>{lease.leaseEndDate}</td>
+              <td>{lease.leaseEndDate || "Lease active"}</td>
               <td>{lease.book.name}</td>
               <td>{lease.user.firstName}</td>
               <td>

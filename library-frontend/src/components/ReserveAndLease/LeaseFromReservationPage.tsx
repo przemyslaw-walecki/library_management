@@ -1,7 +1,7 @@
 // LeaseFromReservationPage.tsx
 
 import React, { useEffect, useState } from 'react';
-import { getReservationById } from '../../services/api';
+import { getReservationById, leaseBookFromReservation } from '../../services/api';
 import { useNavigate, useParams } from 'react-router-dom';
 
 const LeaseFromReservationPage: React.FC = () => {
@@ -22,6 +22,10 @@ const LeaseFromReservationPage: React.FC = () => {
     fetchReservationDetails();
   }, [id]);
 
+  if (localStorage.getItem('role') !== 'Librarian') {
+    navigate('/list-books');
+  }
+
   if (!reservation) {
     return <div>Loading...</div>;
   }
@@ -29,7 +33,7 @@ const LeaseFromReservationPage: React.FC = () => {
   const handleConfirmLease = async () => {
     try {
       await leaseBookFromReservation(reservation.reservationId);
-      navigate('/leases'); // Redirect to the lease page
+      navigate('/reservations');
     } catch (error) {
       console.error('Error leasing book:', error);
     }

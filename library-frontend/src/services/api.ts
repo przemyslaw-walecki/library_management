@@ -253,6 +253,7 @@ export const registerUser = async (user: UserRegisterForm) => {
 
 export const getReservations = async () => {
   const response = await fetch(`${API_URL}/reservations`, {
+    method: 'GET',
     credentials: 'include',
   });
   return response.json();
@@ -260,6 +261,7 @@ export const getReservations = async () => {
 
 export const getReservationById = async (id: number) => {
   const response = await fetch(`${API_URL}/reservations/${id}`, {
+    method: 'GET',
     credentials: 'include',
   });
   return response.json();
@@ -267,6 +269,7 @@ export const getReservationById = async (id: number) => {
 
 export const getLeases = async () => {
   const response = await fetch(`${API_URL}/leases`, {
+    method: 'GET',
     credentials: 'include',
   });
   return response.json();
@@ -274,7 +277,30 @@ export const getLeases = async () => {
 
 export const getLeaseById = async (id: number) => {
   const response = await fetch(`${API_URL}/leases/${id}`, {
+    method: 'GET',
     credentials: 'include',
   });
   return response.json();
+};
+
+export const leaseBookFromReservation = async (reservationId: number) => {
+  const response = await fetch(`${API_URL}/reservations/${reservationId}/lease`, {
+    method: 'PUT',
+    credentials: 'include'
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to lease the book');
+  }
+};
+
+export const endLease = async (leaseId: number) => {
+  const response = await fetch(`${API_URL}/leases/${leaseId}/end`, {
+    method: 'PUT',
+    credentials: 'include'
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to end the lease');
+  }
 };

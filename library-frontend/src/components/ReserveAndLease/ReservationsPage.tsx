@@ -19,9 +19,10 @@ const ReservationsPage: React.FC = () => {
     fetchReservations();
   }, []);
 
-  const handleLease = (reservationId: number) => {
-    navigate(`/leases/lease?reservationId=${reservationId}`);
-  };
+  if (localStorage.getItem('role') !== 'Librarian') {
+    navigate('/list-books');
+  }
+
 
   return (
     <div className="container">
@@ -42,7 +43,7 @@ const ReservationsPage: React.FC = () => {
               <td>{reservation.book.name}</td>
               <td>{reservation.user.username}</td>
               <td>
-                <button onClick={() => handleLease(reservation.reservationId)} className="btn btn-primary">
+                <button onClick={() => navigate(`/leases/lease/${reservation.reservationId}`)} className="btn btn-primary">
                   Lease
                 </button>
                 <button onClick={() => navigate(`/reservations/details/${reservation.reservationId}`)} className="btn btn-secondary ms-2">

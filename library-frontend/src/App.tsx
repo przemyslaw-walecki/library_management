@@ -11,7 +11,8 @@ import ReservationsPage from './components/ReserveAndLease/ReservationsPage';
 import LeasesPage from './components/ReserveAndLease/LeasesPage';
 import LeaseDetailsPage from './components/ReserveAndLease/LeaseDetailsPage';
 import ReservationDetailsPage from './components/ReserveAndLease/ReservationDetailsPage';
-
+import EndLeasePage from './components/ReserveAndLease/EndLeasePage';
+import LeaseFromReservationPage from './components/ReserveAndLease/LeaseFromReservationPage';
 
 
 const App: React.FC = () => {
@@ -31,6 +32,8 @@ const App: React.FC = () => {
           <Route path="/reservations/details/:id" element={<ReservationDetailsPage />} />
           <Route path="/leases" element={<LeasesPage />} />
           <Route path="/leases/details/:id" element={<LeaseDetailsPage />} />
+          <Route path="/leases/end/:id" element={<EndLeasePage />} />
+          <Route path="/leases/lease/:id" element={<LeaseFromReservationPage />} />
       </Routes>
     </Router>
   );
