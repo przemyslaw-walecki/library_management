@@ -2,13 +2,11 @@
 
 ## Running this project:
 - #### Database:
-    - Create a .env file with database credentials: 
-      - > POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB
     - Run docker-compose:
       - `docker-compose up -d `
     - The databse is initially seeded with example books and two users:
       - > username: test, password: test
-        > username: library_admin, password: library_password
+        > username: librarian_admin, password: librariran_password (library admin)
 - #### ASP\.NET backend:
   - Enter the solution directory
   - Run the dotnet config:
@@ -16,7 +14,5 @@
     `dotnet build`
     `dotnet run`
 - #### React frontend:
-  - Enter library-frontend
-  - Run React config:
-  - `npm install`
-    `npm start`
+    - Run docker-compose:
+      - `docker-compose up -d 
