@@ -70,14 +70,12 @@ namespace LibraryManagementSystem.Controllers
             return null;
         }
 
-        private string HashPassword(string password)
+        private static string HashPassword(string password)
         {
-            using (var sha256 = SHA256.Create())
-            {
-                var bytes = Encoding.UTF8.GetBytes(password);
-                var hash = sha256.ComputeHash(bytes);
-                return Convert.ToBase64String(hash);
-            }
+            var sha256 = SHA256.Create();
+            var bytes = Encoding.UTF8.GetBytes(password);
+            var hash = sha256.ComputeHash(bytes);
+            return Convert.ToBase64String(hash);
         }
 
         [HttpPost("login")]
@@ -102,8 +100,8 @@ namespace LibraryManagementSystem.Controllers
 
         }
 
-    [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] User user)
+        [HttpPost("register")]
+        public async Task<IActionResult> Register([FromBody] UserRegisterDto user)
         {
             var detectUsernameConflict = await _context.Users.FirstOrDefaultAsync(u => u.Username == user.Username).ConfigureAwait(false);
 
@@ -114,10 +112,21 @@ namespace LibraryManagementSystem.Controllers
 
             if (ModelState.IsValid)
             {
-                user.Password = HashPassword(user.Password);
-                user.IsLibrarian = false;
+                var userToSave = new User
+                {
+                    Username = user.Username,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    Password = HashPassword(user.Password),
+                    Email = user.Email,
+                    IsLibrarian = false,
+                };
+                if(!string.IsNullOrEmpty(user.PhoneNumber))
+                {
+                    userToSave.PhoneNumber = user.PhoneNumber;
+                }
 
-                _context.Add(user);
+                _context.Add(userToSave);
                 try
                 {
                     await _context.SaveChangesAsync();
@@ -127,15 +136,6 @@ namespace LibraryManagementSystem.Controllers
                     Console.WriteLine(ex.ToString());
                     return StatusCode(500, new { message = "An error occurred while saving the user." });
                 }
-
-                var token = GenerateJwtToken(user);
-                Response.Cookies.Append("AuthToken", token, new CookieOptions
-                {
-                    HttpOnly = true,
-                    Secure = true,
-                    SameSite = SameSiteMode.Strict,
-                    Expires = DateTime.UtcNow.AddHours(1)
-                });
 
                 return Ok(new { message = "Registration successful." });
             }
@@ -164,14 +164,91 @@ namespace LibraryManagementSystem.Controllers
                 .ThenInclude(r => r.Book)
                 .Include(u => u.Leases)
                 .ThenInclude(l => l.Book)
-                .FirstOrDefaultAsync(u => u.Id == userId.Value).ConfigureAwait(false);
+                .FirstOrDefaultAsync(u => u.Id == userId.Value);
 
             if (user == null)
             {
                 return NotFound(new { message = "User not found." });
             }
 
-            return Ok(user);
+            var userDto = new
+            {
+                user.FirstName,
+                user.LastName,
+                user.Email,
+                user.PhoneNumber,
+                Reservations = user.Reservations.Select(r => new ReservationDto
+                {
+                    ReservationId = r.ReservationId,
+                    ReservationEndDate = r.ReservationEndDate,
+                    Book = new BookInfoDto
+                    {
+                        BookId = r.Book.BookId,
+                        Author = r.Book.Author,
+                        Publisher = r.Book.Publisher,
+                        DateOfPublication = r.Book.DateOfPublication?.ToString("yyyy-MM-dd"),
+                        Price = r.Book.Price,
+                        Name = r.Book.Name
+                    }
+                }).ToList(),
+                Leases = user.Leases.Select(l => new LeaseDto
+                {
+                    LeaseId = l.LeaseId,
+                    LeaseStartDate = l.LeaseStartDate,
+                    LeaseEndDate = l.LeaseEndDate,
+                    Book = new BookInfoDto
+                    {
+                        BookId = l.Book.BookId,
+                        Author = l.Book.Author,
+                        Publisher = l.Book.Publisher,
+                        DateOfPublication = l.Book.DateOfPublication?.ToString("yyyy-MM-dd"),
+                        Price = l.Book.Price,
+                        Name = l.Book.Name
+                    }
+                }).ToList()
+            };
+
+            return Ok(userDto);
         }
+        [HttpDelete]
+        public async Task<IActionResult> DeleteAccount()
+        {
+            var userId = GetUserIdFromJwt();
+
+            var user = await _context.Users
+                .Include(u => u.Leases)
+                .Include(u => u.Reservations)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user == null)
+            {
+                return NotFound(new { message = "User not found." });
+            }
+
+            if (user.Leases.Any(l => l.IsActive))
+            {
+                return BadRequest(new { message = "User cannot be deleted because they have active leases." });
+            }
+
+            var userReservations = _context.Reservations.Where(r => r.UserId == userId);
+            _context.Reservations.RemoveRange(userReservations);
+
+            _context.Users.Remove(user);
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+                return StatusCode(500, new { message = "An error occurred while deleting the user account." });
+            }
+
+            return Ok(new { message = "User account and all reservations have been deleted successfully." });
+        }
+
+
+
     }
 }

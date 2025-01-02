@@ -16,4 +16,20 @@ namespace LibraryManagementSystem.Models
         public virtual Book Book { get; set; } = null!;
         public virtual User User { get; set; } = null!;
     }
+    public class ReservationDto
+    {
+        public int ReservationId { get; set; }
+        public DateTime ReservationEndDate { get; set; }
+        public BookInfoDto Book { get; set; } = null!;
+        public UserDto User { get; set; } = null!;
+    }
+
+    public class LeaseDto
+    {
+        public int LeaseId { get; set; }
+        public DateTime LeaseStartDate { get; set; }
+        public DateTime? LeaseEndDate { get; set; }
+        public BookInfoDto Book { get; set; } = null!;
+        public UserDto User { get; set; } = null!;
+    }
 }

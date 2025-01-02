@@ -41,12 +41,20 @@ const Navbar: React.FC = () => {
                 </>
               )}
               {role === 'Librarian' && (
+                <>
+                <button onClick={() => navigate('/reservations')} className="btn btn-primary me-2">
+                    Manage Reservations
+                  </button>
+                  <button onClick={() => navigate('/leases')} className="btn btn-primary me-2">
+                    Manage Leases
+                  </button>
                 <button
                   onClick={() => navigate('/manage-books')}
                   className="btn btn-primary me-2"
                 >
                   Manage Books
                 </button>
+                </>
               )}
               <button
                 onClick={handleLogout}

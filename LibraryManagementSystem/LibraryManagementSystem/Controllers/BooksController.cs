@@ -105,7 +105,7 @@ namespace LibraryManagementSystem.Controllers
             }
 
 
-            var bookDto = new BookEditDto
+            var bookDto = new BookInfoDto
             {
                 BookId = book.BookId,
                 Author = book.Author,
@@ -205,7 +205,7 @@ namespace LibraryManagementSystem.Controllers
         // PUT: api/books/edit/{id}
         [HttpPut("edit/{id}")]
         [Authorize(Roles = "Librarian")]
-        public async Task<IActionResult> EditBook(int id, [FromBody] BookEditDto book)
+        public async Task<IActionResult> EditBook(int id, [FromBody] BookInfoDto book)
         {
             Console.WriteLine("Received Book DTO: " + JsonConvert.SerializeObject(book));
             var existingBook = await _context.Books.FindAsync(id);
@@ -238,6 +238,7 @@ namespace LibraryManagementSystem.Controllers
         {
             var book = await _context.Books
                 .Include(b => b.Leases)
+                .Include(b => b.Reservations)
                 .FirstOrDefaultAsync(b => b.BookId == id);
 
             if (book == null || book.IsPermanentlyUnavailable)
@@ -245,10 +246,14 @@ namespace LibraryManagementSystem.Controllers
                 return NotFound("Book not found or already marked as permanently unavailable.");
             }
 
-            var activeLease = book.Leases.Any(l => l.LeaseEndDate == null);
-            if (activeLease)
+            if (book.IsLeased)
             {
                 return Conflict("Book currently leased.");
+            }
+
+            if (book.Reservations.Any())
+            {
+                _context.Reservations.RemoveRange(book.Reservations);
             }
 
             if (book.Leases.Any())
@@ -259,6 +264,7 @@ namespace LibraryManagementSystem.Controllers
             {
                 _context.Books.Remove(book);
             }
+
 
             await _context.SaveChangesAsync();
             return Ok("Book deleted/marked as unavailable successfully.");

@@ -45,7 +45,7 @@ namespace LibraryManagementSystem.Models
         public bool IsReserved { get; set; }
     }
 
-    public class BookEditDto
+    public class BookInfoDto
     {
         public int BookId { get; set; }
         public string Author { get; set; } = null !;

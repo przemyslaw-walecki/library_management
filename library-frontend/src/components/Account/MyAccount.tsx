@@ -36,6 +36,7 @@ const MyAccount: React.FC = () => {
       await deleteAccount();
       setSuccessMessage('Your account has been deleted.');
       setUser(null);
+      setTimeout(() => navigate('/books'), 1000);
     } catch (error) {
       console.error('Error deleting account:', error);
       setErrorMessage('Failed to delete your account.');
@@ -51,9 +52,9 @@ const MyAccount: React.FC = () => {
               ...prevUser,
               reservations: {
                 ...prevUser.reservations,
-                $values: prevUser.reservations.$values.filter(
+                $values: prevUser.reservations?.$values?.filter(
                   (r) => r.reservationId !== reservationId
-                ),
+                ) || [],
               },
             }
           : null
@@ -72,6 +73,7 @@ const MyAccount: React.FC = () => {
   if (!user) {
     return (
       <div className="container mt-5">
+        {successMessage && <div className="alert alert-success">{successMessage}</div>}
         <div className="alert alert-warning text-center">
           You are not logged in. Please log in to view your account.
         </div>
@@ -105,7 +107,7 @@ const MyAccount: React.FC = () => {
 
       <div className="mb-4">
         <h4>Your Reservations</h4>
-        {user.reservations.$values.length > 0 ? (
+        {(user.reservations?.$values?.length || 0) > 0 ? (
           <ul className="list-group">
             {user.reservations.$values.map((reservation) => (
               <li
@@ -132,7 +134,7 @@ const MyAccount: React.FC = () => {
 
       <div>
         <h4>Your Leases</h4>
-        {user.leases.$values.length > 0 ? (
+        {(user.leases?.$values?.length || 0) > 0 ? (
           <ul className="list-group">
             {user.leases.$values.map((lease) => (
               <li key={lease.leaseId} className="list-group-item shadow-sm">
@@ -161,7 +163,6 @@ const MyAccount: React.FC = () => {
       </button>
 
     </div>
-
   );
 };
 

@@ -20,6 +20,15 @@ export interface Book {
   interface LoginResponse {
     token: string;
   }
+
+  export interface UserRegisterForm {
+    username: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phoneNumber?: string;
+    password: string;
+  }
   
   interface DecodedToken {
     name: string;
@@ -97,17 +106,26 @@ interface DecodedToken {
   iat: number;
 }
 
+export interface BookInfo {
+  bookId: number;
+  author: string;
+  publisher: string;
+  dateOfPublication: string;
+  price: number;
+  name: string;
+}
+
 export interface Reservation {
   reservationId: number;
-  book: Book;
   reservationEndDate: string;
+  book: BookInfo;
 }
 
 export interface Lease {
   leaseId: number;
-  book: Book;
   leaseStartDate: string;
-  leaseEndDate?: string | null;
+  leaseEndDate?: string;
+  book: BookInfo;
 }
 
 interface Collection<T> {
@@ -134,12 +152,13 @@ export const fetchUserAccount = async (): Promise<User> => {
 };
 
 export const deleteAccount = async (): Promise<void> => {
-  const response = await fetch(`${API_URL}/Account/DeleteAccount`, {
-    method: 'POST',
+  const response = await fetch(`${API_URL}/Account`, {
+    method: 'DELETE',
     credentials: 'include',
   });
 
   if (!response.ok) throw new Error('Failed to delete account');
+  await logout();
 };
 
 export const cancelReservation = async (reservationId: number): Promise<void> => {
@@ -214,4 +233,48 @@ export const deleteBook = async (bookId: number) => {
   if (!response.ok) {
     throw new Error('Failed to delete book');
   }
+};
+
+export const registerUser = async (user: UserRegisterForm) => {
+  const response = await fetch(`${API_URL}/account/register`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(user),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to register user');
+  }
+
+  return response.json();
+};
+
+export const getReservations = async () => {
+  const response = await fetch(`${API_URL}/reservations`, {
+    credentials: 'include',
+  });
+  return response.json();
+};
+
+export const getReservationById = async (id: number) => {
+  const response = await fetch(`${API_URL}/reservations/${id}`, {
+    credentials: 'include',
+  });
+  return response.json();
+};
+
+export const getLeases = async () => {
+  const response = await fetch(`${API_URL}/leases`, {
+    credentials: 'include',
+  });
+  return response.json();
+};
+
+export const getLeaseById = async (id: number) => {
+  const response = await fetch(`${API_URL}/leases/${id}`, {
+    credentials: 'include',
+  });
+  return response.json();
 };

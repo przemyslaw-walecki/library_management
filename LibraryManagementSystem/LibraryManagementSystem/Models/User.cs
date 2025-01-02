@@ -40,7 +40,7 @@ namespace LibraryManagementSystem.Models
 
         [EmailAddress]
         [Column("email")]
-        public string? Email { get; set; }
+        public string Email { get; set; } = null!;
 
         [Column("is_librarian", TypeName = "boolean")]
         [Required]
@@ -49,4 +49,50 @@ namespace LibraryManagementSystem.Models
         public virtual ICollection<Lease> Leases { get; set; }
         public virtual ICollection<Reservation> Reservations { get; set; }
     }
+
+    public class MyAccountDto
+    {
+        public int Id { get; set; }
+        public string Username { get; set; } = null!;
+        public string FirstName { get; set; } = null!;
+        public string LastName { get; set; } = null!;
+        public string? PhoneNumber { get; set; }
+        public string Email { get; set; } = null!;
+        public List<BookInfoDto> Reservations { get; set; } = new();
+        public List<BookInfoDto> Leases { get; set; } = new();
+    }
+    public class UserRegisterDto
+    {
+        [Required]
+        public string Username { get; set; } = null!;
+
+        [Required]
+        public string FirstName { get; set; } = null!;
+
+        [Required]
+        public string LastName { get; set; } = null!;
+
+        [Required]
+        public string Password { get; set; } = null!;
+
+        [Phone]
+        public string? PhoneNumber { get; set; }
+
+        [EmailAddress]
+        [Required]
+        public string Email { get; set; } = null!;
+
+        [Required]
+        public bool IsLibrarian { get; set; }
+    }
+    public class UserDto
+    {
+        public int UserId { get; set; }
+        public string Username { get; set; } = null!;
+        public string Email { get; set; } = null!;
+        public string? PhoneNumber { get; set; }
+        public string FirstName { get; set; } = null!;
+        public string LastName { get; set; } = null!;
+}
+
 }

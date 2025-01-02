@@ -62,14 +62,38 @@ namespace LibraryManagementSystem.Controllers
         [Authorize(Roles = "Librarian")]
         public async Task<ActionResult> GetReservations()
         {
-
             var reservations = await _context.Reservations
                 .Include(r => r.Book)
                 .Include(r => r.User)
                 .Where(r => r.ReservationEndDate > DateTime.Now)
                 .ToListAsync();
 
-            return Ok(reservations);
+            // Map reservations to ReservationDto
+            var reservationDtos = reservations.Select(reservation => new ReservationDto
+            {
+                ReservationId = reservation.ReservationId,
+                ReservationEndDate = reservation.ReservationEndDate,
+                Book = new BookInfoDto
+                {
+                    BookId = reservation.Book.BookId,
+                    Name = reservation.Book.Name,
+                    Author = reservation.Book.Author,
+                    Publisher = reservation.Book.Publisher,
+                    DateOfPublication = reservation.Book.DateOfPublication?.ToString("yyyy-MM-dd"),
+                    Price = reservation.Book.Price,
+                },
+                User = new UserDto
+                {
+                    UserId = reservation.User.Id,
+                    Username = reservation.User.Username,
+                    Email = reservation.User.Email,
+                    PhoneNumber = reservation.User.PhoneNumber,
+                    FirstName = reservation.User.FirstName,
+                    LastName = reservation.User.LastName
+                }
+            }).ToList();
+
+            return Ok(reservationDtos);
         }
 
         // GET: api/reservations/{id}
@@ -87,8 +111,35 @@ namespace LibraryManagementSystem.Controllers
                 return NotFound();
             }
 
-            return Ok(reservation);
+            // Map reservation to ReservationDto
+            var reservationDto = new ReservationDto
+            {
+                ReservationId = reservation.ReservationId,
+                ReservationEndDate = reservation.ReservationEndDate,
+                Book = new BookInfoDto
+                {
+                    BookId = reservation.Book.BookId,
+                    Name = reservation.Book.Name,
+                    Author = reservation.Book.Author,
+                    Publisher = reservation.Book.Publisher,
+                    DateOfPublication = reservation.Book.DateOfPublication?.ToString("yyyy-MM-dd"),
+                    Price = reservation.Book.Price,
+                },
+                User = new UserDto
+                {
+                    UserId = reservation.User.Id,
+                    Username = reservation.User.Username,
+                    Email = reservation.User.Email,
+                    PhoneNumber = reservation.User.PhoneNumber,
+                    FirstName = reservation.User.FirstName,
+                    LastName = reservation.User.LastName
+                }
+            };
+
+            return Ok(reservationDto);
         }
+
+
 
         // DELETE: api/reservations/{id}
         [HttpDelete("{id}")]

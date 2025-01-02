@@ -6,6 +6,13 @@ import BookListPage from './components/Books/BookListPage';
 import MyAccount from './components/Account/MyAccount';
 import ManageBooks from './components/Books/ManageBooks';
 import BookForm from './components/Books/BookForm';
+import RegisterPage from './components/Account/RegisterPage';
+import ReservationsPage from './components/ReserveAndLease/ReservationsPage';
+import LeasesPage from './components/ReserveAndLease/LeasesPage';
+import LeaseDetailsPage from './components/ReserveAndLease/LeaseDetailsPage';
+
+
+
 
 const App: React.FC = () => {
   return (
@@ -19,6 +26,11 @@ const App: React.FC = () => {
         <Route path="/edit-book/:id" element={<BookForm />} />
         <Route path="/add-book" element={<BookForm />} />
         <Route path="/" element={<BookListPage />} />
+        <Route path="/register" element={<RegisterPage/>} />
+          <Route path="/reservations" element={<ReservationsPage />} />
+          <Route path="/reservations/details/:id" element={<LeaseDetailsPage />} />
+          <Route path="/leases" element={<LeasesPage />} />
+          <Route path="/leases/details/:id" element={<LeaseDetailsPage />} />
       </Routes>
     </Router>
   );

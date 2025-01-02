@@ -9,7 +9,6 @@ const ManageBooks: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const role = localStorage.getItem('role');
     const getBooks = async () => {
       try {
         const data = await fetchManageBooks();
