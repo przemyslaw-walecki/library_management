@@ -10,7 +10,7 @@ import RegisterPage from './components/Account/RegisterPage';
 import ReservationsPage from './components/ReserveAndLease/ReservationsPage';
 import LeasesPage from './components/ReserveAndLease/LeasesPage';
 import LeaseDetailsPage from './components/ReserveAndLease/LeaseDetailsPage';
-
+import ReservationDetailsPage from './components/ReserveAndLease/ReservationDetailsPage';
 
 
 
@@ -28,7 +28,7 @@ const App: React.FC = () => {
         <Route path="/" element={<BookListPage />} />
         <Route path="/register" element={<RegisterPage/>} />
           <Route path="/reservations" element={<ReservationsPage />} />
-          <Route path="/reservations/details/:id" element={<LeaseDetailsPage />} />
+          <Route path="/reservations/details/:id" element={<ReservationDetailsPage />} />
           <Route path="/leases" element={<LeasesPage />} />
           <Route path="/leases/details/:id" element={<LeaseDetailsPage />} />
       </Routes>
